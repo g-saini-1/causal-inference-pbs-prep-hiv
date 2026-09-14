@@ -1,0 +1,13 @@
+
+
+
+PBS Item Code, Drug Name,Restriction-Indication,
+10347N,TENOFOVIR DISOPROXIL + EMTRICITABINE,HIV Infection
+11149T,TENOFOVIR DISOPROXIL + EMTRICITABINE,HIV Infection
+11276L,TENOFOVIR DISOPROXIL + EMTRICITABINE,Pre-exposure prophylaxis (PrEP) against human immunodeficiency virus (HIV) infection
+11296M,TENOFOVIR DISOPROXIL + EMTRICITABINE,Pre-exposure prophylaxis (PrEP) against human immunodeficiency virus (HIV) infection
+12506F,TENOFOVIR DISOPROXIL + EMTRICITABINE,HIV Infection
+12542D,TENOFOVIR DISOPROXIL + EMTRICITABINE,Pre-exposure prophylaxis (PrEP) against human immunodeficiency virus (HIV) infection
+15366R,TENOFOVIR DISOPROXIL + EMTRICITABINE,Pre-exposure prophylaxis (PrEP) against human immunodeficiency virus (HIV) infection
+15383P,TENOFOVIR DISOPROXIL + EMTRICITABINE,Pre-exposure prophylaxis (PrEP) against human immunodeficiency virus (HIV) infection
+15410C,TENOFOVIR DISOPROXIL + EMTRICITABINE,Pre-exposure prophylaxis (PrEP) against human immunodeficiency virus (HIV) infection

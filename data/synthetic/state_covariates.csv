@@ -1,0 +1,7 @@
+state,population,msm_pop_proxy,irsd_socio_index,urbanicity_index,baseline_hiv_testing_rate_2017,covid_lockdown_severity_2020,epic_nsw_early_access
+NSW,8200000,145000,1005,0.88,0.62,0.45,1
+VIC,6700000,118000,1010,0.87,0.58,0.85,0
+QLD,5300000,82000,985,0.71,0.5,0.25,0
+WA,2700000,44000,1000,0.79,0.47,0.15,0
+SA,1800000,27000,975,0.77,0.49,0.2,0
+OTHER,1100000,14000,960,0.55,0.4,0.2,0
