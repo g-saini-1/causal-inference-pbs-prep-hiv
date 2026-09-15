@@ -1,15 +1,16 @@
-# Did PBS-subsidised PrEP reduce new HIV diagnoses in Australia?
+# Data acquisition, synthetic data, and QA: PBS-subsidised PrEP and HIV diagnoses
 
 *A causal inference case study using Australian PrEP listing and HIV surveillance data*
 
-## The project in one paragraph
+## Overview
 
-On 1 April 2018, Australia's Pharmaceutical Benefits Scheme (PBS) began subsidising
-HIV pre-exposure prophylaxis (PrEP), cutting the cost from several hundred dollars a
-month to around $40. This project asks whether that policy change caused a measurable
-reduction in new HIV diagnoses, beyond trends that were already underway, and uses the
-episode to demonstrate a full causal-inference workflow: from a simple before/after
-check through to a staggered-adoption difference-in-differences design.
+This document covers how the data behind this project was sourced, why the analysis
+ultimately runs on synthetic data instead of the real PBS/NNDSS extracts, how that
+synthetic data was built, and the QA performed on it. For the causal question, the
+four-stage design, and why this project was chosen, see
+[`docs/scope_and_rationale.md`](../docs/scope_and_rationale.md). For Stage 1's
+results, see
+[`reports/stage1_interrupted_time_series.md`](stage1_interrupted_time_series.md).
 
 ## Background and the PBS item codes involved
 
@@ -33,37 +34,10 @@ project (`data/raw/pbs-dispensing-data/PBS_Data_2103987483.7.xls`) shows about
 59,600 PrEP dispensing services nationally in the first nine months after listing
 (April to December 2018), rising from a standing start.
 
-## Causal question and design
-
-**Primary question:** did the PBS listing of PrEP cause a reduction in new HIV
-diagnoses in Australia, beyond the pre-existing downward trend?
-
-The analysis builds in four stages of increasing rigour, the last of which is
-optional:
-
-1. **Interrupted time series on PrEP dispensing**, a sanity-check step. The level
-   shift at April 2018 is large and unambiguous, so this mainly demonstrates a clean
-   segmented regression before tackling the harder outcome question.
-2. **Difference-in-differences on HIV notifications**, comparing diagnoses attributed
-   to male-to-male sexual contact (the population PrEP overwhelmingly targets)
-   against diagnoses attributed to other transmission categories, which act as a
-   control group unaffected by PrEP availability but exposed to the same general
-   trends in testing and awareness.
-3. **Staggered-adoption analysis across states**, exploiting the fact that New South
-   Wales ran a large PrEP demonstration trial (EPIC-NSW) from 2016, effectively
-   receiving the intervention roughly two years before the rest of the country. This
-   supports a more modern staggered-DiD approach, similar in spirit to estimators
-   such as Callaway and Sant'Anna, and avoids the "bad comparisons" problem that
-   affects naive two-way fixed-effects estimators when treatment timing varies
-   across units.
-4. **Causal forest heterogeneity analysis (optional)**, using the state-level
-   covariates described below to test whether the PrEP effect varied by state, for
-   example due to uneven COVID-19 disruption.
-
-## Phase 1 data acquisition: what was attempted with real-world data
+## Data acquisition attempt: what was attempted with real-world data
 
 Before settling on synthetic data, a genuine attempt was made to source and validate
-both halves of the causal chain from public real-world data. This phase surfaced two
+both halves of the causal chain from public real-world data. This surfaced two
 distinct, unresolved data-availability problems: one on the treatment (PBS dispensing)
 side, and one on the outcome (HIV notifications) side, that together motivated the
 switch to synthetic data.
@@ -126,27 +100,6 @@ switched to generating **synthetic data with the same structure and known, built
 effects**, described below, so that the full causal-inference workflow (the quarterly
 resolution and multi-year pre-period the real data couldn't supply) could still be
 built and validated end-to-end against a known ground truth.
-
-## Visual check: does the dispensing data show the expected level shift?
-
-![PBS PrEP dispensing counts by state and nationally, January 2016 to December 2022](figures/pbs_prep_dispensing_chart.png)
-
-This chart corresponds to Stage 1 of the design above, the interrupted time series
-sanity check. Before running any regression, it's worth just looking at the raw
-dispensing series: does the data actually show the large, obvious level shift the
-project's causal argument depends on? It does. National dispensing sits below 750 a
-month through 2016–17, then rises roughly eightfold in the first six months after the
-April 2018 listing, settling around 5,500–6,000 a month by 2019. Two further patterns
-are visible without any modelling:
-
-- **A clear COVID-19 dip.** National dispensing falls from ~5,900 to ~3,800 a month
-  during 2020, with the slowest recovery in Victoria, consistent with that state's
-  extended lockdowns, and a useful secondary natural experiment also discussed in
-  `docs/scope_and_rationale.md`.
-- **NSW is already elevated before the national listing.** Its line separates from
-  the other states well before April 2018, which is the first visual hint that the
-  "before" period isn't as flat as a simple before/after comparison would assume.
-  This is addressed in more detail below.
 
 ## Data used, and why it's synthetic
 
@@ -216,33 +169,9 @@ than errors:
 - NSW's early EPIC-NSW dispensing means the *national* pre-2018 baseline is not
   strictly "near zero," which will bias a naive single-break national segmented
   regression. This is the reason the staggered-adoption design (Stage 3) exists,
-  rather than a defect to remove.
+  rather than a defect to remove. See
+  [`reports/stage1_interrupted_time_series.md`](stage1_interrupted_time_series.md)
+  for the chart and analysis of this pre-trend.
 - NSW's trial-era dispensing floor is capped and held constant going forward; this is
   inert under current parameters but would need revisiting if the post-listing scale
   parameter were substantially reduced in a future version.
-
-### A closer look at the NSW pre-trend
-
-![PBS PrEP dispensing, EPIC-NSW trial to PBS listing, January 2016 to April 2018](figures/pbs_epic_nsw_zoom_chart.png)
-
-The chart above zooms into exactly the window flagged in the QA notes: January 2016 to
-April 2018, on a y-axis scaled to the pre-listing range rather than the full national
-scale (where these numbers would be flattened near zero). Two things stand out:
-
-- **NSW's rise is not a fluke of the generator. It is the intended EPIC-NSW signal.**
-  Dispensing climbs steadily from 0 to roughly 670–730 a month over two years,
-  entirely before the national PBS listing, while every other state stays at
-  essentially zero across the same period.
-- **This is exactly why Stage 1's naive interrupted time series needs a caveat, and
-  why Stage 3 exists.** A single national break test at April 2018 would attribute
-  some of NSW's already-established upward trend to the listing itself. Treating NSW
-  as an earlier-treated unit (from 2016) and the rest of the country as later-treated
-  (from 2018), a staggered-adoption design, is the more defensible way to use this
-  same data, and this chart is the clearest single piece of evidence for why.
-
-## Status
-
-Synthetic data generation, verification, and the dispensing-side interrupted time
-series visualisation are complete. The difference-in-differences and staggered-
-adoption analyses on HIV notifications are next; the optional causal forest
-heterogeneity analysis follows.
