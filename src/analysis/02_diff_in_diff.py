@@ -3,7 +3,7 @@
 Compares MSM notifications (the population PrEP overwhelmingly targets)
 against Heterosexual/Other notifications (the control group, unaffected by
 PrEP availability but exposed to the same secular trends) around the 1 April
-2018 PBS listing date. See reports/full_narrative.md, Stage 2, for the
+2018 PBS listing date. See docs/scope_and_rationale.md, Stage 2, for the
 identification argument.
 
 TODO: fit the two-way fixed effects DiD model

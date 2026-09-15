@@ -2,7 +2,7 @@
 
 NSW effectively received the PrEP "treatment" ~2 years earlier than other
 states via the EPIC-NSW demonstration trial (from 2016), ahead of the
-national PBS listing (April 2018). See reports/full_narrative.md, Stage 3,
+national PBS listing (April 2018). See docs/scope_and_rationale.md, Stage 3,
 for why a naive two-way fixed-effects DiD is unreliable here (the classic
 "bad comparisons" problem when treatment timing varies across units) and why
 a modern staggered-adoption estimator (e.g. Callaway & Sant'Anna) is more

@@ -3,7 +3,7 @@
 Uses state-level covariates (testing rates, socioeconomic index, COVID
 lockdown severity, EPIC-NSW early-access flag) with EconML's CausalForestDML
 to estimate whether the PrEP effect on MSM HIV notifications varied by
-state. See reports/full_narrative.md, Stage 4, for the motivating
+state. See docs/scope_and_rationale.md, Stage 4, for the motivating
 observation that COVID-19 disrupted PrEP uptake unevenly across states.
 
 TODO: merge data/synthetic/hiv_notifications_quarterly.csv (MSM category)
