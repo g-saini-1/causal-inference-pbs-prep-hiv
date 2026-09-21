@@ -32,13 +32,13 @@ def state_label(state):
 
 def fit_segmented_regression(national):
     national = national.copy()
-    national["period_index"] = range(len(national))
+    national["t"] = range(len(national))
     national["post_listing"] = (national["month"] >= PBS_LISTING_DATE).astype(int)
-    national["months_since_listing_post"] = national["post_listing"] * (
-        national["period_index"] - national.loc[national["post_listing"] == 1, "period_index"].min()
+    national["months_since_post_listing"] = national["post_listing"] * (
+        national["t"] - national.loc[national["post_listing"] == 1, "t"].min()
     )
     return smf.ols(
-        "prep_dispensing_count ~ period_index + post_listing + months_since_listing_post",
+        "prep_dispensing_count ~ t + post_listing + months_since_post_listing",
         data=national,
     ).fit()
 
