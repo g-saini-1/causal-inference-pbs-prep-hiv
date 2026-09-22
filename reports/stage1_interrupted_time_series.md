@@ -1,4 +1,4 @@
-# Stage 1: Interrupted Time Series on PrEP dispensing
+# Stage 1: Interrupted time series on PrEP dispensing
 
 Sanity-check step in the four-stage design: does national PBS PrEP dispensing show
 the level shift the project's causal argument depends on, and is a simple national
@@ -17,9 +17,8 @@ where:
 - `dispensing[t]`: national PrEP dispensing count in month t.
 - `t`: a running month index, 0, 1, 2, ..., 83 (January 2016 = 0).
 - `post_listing[t]`: 1 if month t falls on or after April 2018, 0 otherwise.
-- `months_since_post_listing[t]`: `post_listing[t]` \* `t` minus 
-  `t at the first post-listing month`, so it counts 0, 1, 2, ... after
-  listing and stays at 0 throughout the pre-period.
+- `months_since_post_listing[t]`: `post_listing[t] * (t - t at the first post-listing month)`,
+  so it counts 0, 1, 2, ... after listing and stays at 0 throughout the pre-period.
 - `ε[t]`: the error term
 
 Coefficients:

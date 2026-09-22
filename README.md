@@ -1,21 +1,29 @@
-# Did PBS-subsidised PrEP reduce new HIV diagnoses in Australia?
-
-*A causal inference case study using Australian PrEP listing and HIV surveillance data*
+# Did subsidising HIV prevention medication reduce diagnoses? A causal inference case study using synthetic data
 
 ## Status
 
 **Where things stand:** Data generation and QA are complete against a known,
-built-in effect. The interrupted time series sanity check (Stage 1) is in
-progress and has so far confirmed an unambiguous shift in PrEP dispensing at
-the April 2018 subsidy date. The core analysis, isolating the policy's
-effect on HIV diagnoses, is next.
+built-in effect. The interrupted time series sanity check (Stage 1) has
+confirmed an unambiguous shift in PrEP dispensing at the April 2018 subsidy
+date. The current write-up fits this with OLS, but OLS also flagged strong
+residual autocorrelation (Durbin-Watson = 0.255). Since the outcome is a
+non-negative count, which regression family should model it (OLS, Poisson,
+or Negative Binomial) is still an open, evidence-based decision, not yet
+settled either way. That comparison is next, before Stage 1 is considered
+final; the core analysis, isolating the policy's effect on HIV diagnoses,
+follows after.
 
 - [x] Data generation and QA: synthetic PBS/HIV data built with a known ground
   truth and validated before use (see
   [`reports/data_acquisition.md`](reports/data_acquisition.md))
 - [ ] Interrupted time series *(Stage 1, in progress)*: confirms an unambiguous
-  level shift in PrEP dispensing at the April 2018 subsidy date (results so far in
-  [`reports/stage1_interrupted_time_series.md`](reports/stage1_interrupted_time_series.md))
+  level shift in PrEP dispensing at the April 2018 subsidy date, currently
+  fit with OLS (results so far in
+  [`reports/stage1_interrupted_time_series.md`](reports/stage1_interrupted_time_series.md));
+  an OLS/Poisson/Negative Binomial comparison is pending before the model
+  choice is treated as final (see
+  [`docs/model_family_concepts.md`](docs/model_family_concepts.md) for the
+  comparison checklist)
 - [ ] Difference-in-differences *(Stage 2)*: compares HIV diagnoses attributed to
   male-to-male sexual contact against other transmission categories to isolate the
   policy effect
@@ -55,9 +63,11 @@ data are in
 | [`src/analysis/`](src/analysis/) | The four analysis stages |
 | [`notebooks/exploratory_analysis.ipynb`](notebooks/exploratory_analysis.ipynb) | Reproducible, top-to-bottom walkthrough of the whole analysis |
 | [`reports/data_acquisition.md`](reports/data_acquisition.md) | Data acquisition attempts, why synthetic data was used, and QA |
-| [`reports/stage1_interrupted_time_series.md`](reports/stage1_interrupted_time_series.md) | Stage 1 regression results and charts |
+| [`reports/stage1_interrupted_time_series.md`](reports/stage1_interrupted_time_series.md) | Stage 1 model specification, regression results, and charts (model-family comparison pending) |
 | [`reports/figures/`](reports/figures/) | Generated charts |
 | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) | Upfront selection rationale, causal design, and data provenance |
+| [`docs/model_family_concepts.md`](docs/model_family_concepts.md) | General, reusable reference for choosing a regression family (OLS/Poisson/NB and beyond), used across stages |
+| [`docs/causal_method_workflow_template.md`](docs/causal_method_workflow_template.md) | Reusable per-stage workflow tracker (frame question → causal method → model → fit → diagnose → interpret) |
 
 ## Getting started
 

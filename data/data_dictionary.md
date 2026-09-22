@@ -40,15 +40,15 @@ Built-in patterns: a mild shared secular decline across all categories; a
 PrEP-driven reduction (ramping to ~42% relative) applied only to the `MSM`
 category, starting 2016Q2 for NSW (EPIC-NSW) and 2018Q2 for all other states
 (PBS listing); a shared testing-disruption dip in 2020–2021H1, worst in VIC.
-`Heterosexual` and `Other` never receive a treatment effect — they are the
+`Heterosexual` and `Other` never receive a treatment effect. They are the
 difference-in-differences control group. National annual totals are
 calibrated to track the published anchor figures (1,028 notifications in
 2015, 838 in 2018).
 
 ## `state_covariates.csv`
 
-One row per state — static (or slow-moving) state-level attributes used for
-the optional heterogeneity / causal forest analysis.
+One row per state, containing static (or slow-moving) state-level attributes
+used for the optional heterogeneity / causal forest analysis.
 
 | column | type | meaning |
 |---|---|---|
@@ -61,7 +61,7 @@ the optional heterogeneity / causal forest analysis.
 | `covid_lockdown_severity_2020` | float | illustrative 2020 lockdown severity index (0–1) |
 | `epic_nsw_early_access` | integer (0/1) | 1 for NSW (EPIC-NSW early-access state), else 0 |
 
-None of these covariate values are real ABS/Kirby figures — they are
+None of these covariate values are real ABS/Kirby figures. They are
 plausible, hand-set constants for demonstrating heterogeneous treatment
 effect estimation.
 
@@ -70,9 +70,9 @@ effect estimation.
 `data/synthetic/legacy/` holds two earlier, superseded iterations, kept for
 provenance rather than for active use:
 
-- `v0.1_pre_qa_fix/` — the generator output before the two QA fixes described
+- `v0.1_pre_qa_fix/`: the generator output before the two QA fixes described
   in `reports/data_acquisition.md` (the April-2018 dispensing-dip artifact and
   the shared-RNG coupling between datasets).
-- `panel_quarterly_2013-2022_v0/` — an earlier, differently-structured panel
+- `panel_quarterly_2013-2022_v0/`: an earlier, differently-structured panel
   design (state × exposure-category × quarter, 2013–2022, with pre-merged
   `analysis_panel.csv`) from before the current monthly/quarterly split.

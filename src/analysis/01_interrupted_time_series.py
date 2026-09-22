@@ -6,7 +6,7 @@ regenerates the two supporting charts in reports/figures/
 (pbs_prep_dispensing_chart.png and pbs_epic_nsw_zoom_chart.png) before
 moving to the harder outcome question in 02_diff_in_diff.py.
 
-See docs/scope_and_rationale.md ("Causal question and design", Stage 1) for
+See docs/scope_and_rationale.md ("Causal question and methodology", Stage 1) for
 the full design rationale, including why this national-level test needs the
 staggered-adoption caveat addressed in 03_staggered_adoption.py. See
 reports/stage1_interrupted_time_series.md for the write-up of these results.
