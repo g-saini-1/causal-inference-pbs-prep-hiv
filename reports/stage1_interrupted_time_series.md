@@ -1,23 +1,54 @@
-# Stage 1 results: interrupted time series on PrEP dispensing
+# Stage 1: Interrupted time series on PrEP dispensing
 
 Sanity-check step in the four-stage design: does national PBS PrEP dispensing show
-the level shift the project's causal argument depends on, and is a naive national
-break test even valid here? See
-[`docs/scope_and_rationale.md`](../docs/scope_and_rationale.md#causal-question-and-design)
-for the full design rationale and how this stage fits the other three.
+the level shift the project's causal argument depends on, and is a simple national
+break test even valid here?
+
+## Model specification
+
+Stage 1 fits a segmented (piecewise-linear) regression, the standard design for an
+interrupted time series:
+
+```
+dispensing[t] = β0 + β1 * t + β2 * post_listing[t] + β3 * months_since_post_listing[t] + ε[t]
+```
+
+where:
+- `dispensing[t]`: national PrEP dispensing count in month t.
+- `t`: a running month index, 0, 1, 2, ..., 83 (January 2016 = 0).
+- `post_listing[t]`: 1 if month t falls on or after April 2018, 0 otherwise.
+- `months_since_post_listing[t]`: `post_listing[t] * (t - t at the first post-listing month)`,
+  so it counts 0, 1, 2, ... after listing and stays at 0 throughout the pre-period.
+- `ε[t]`: the error term
+
+Coefficients:
+
+- `β0`: fitted dispensing level at the start of the series (January 2016).
+- `β1`: pre-existing linear trend: the change in dispensing per month before the listing.
+- `β2`: level shift: the immediate jump in dispensing at treatment (April 2018)
+- `β3`: change in slope after treatment, so the post-period trend equals β1 + β3.
+
+## Model fitting
+
+The coefficients are estimated by ordinary least squares
+(`smf.ols(...).fit()` in
+[`src/analysis/01_interrupted_time_series.py`](../src/analysis/01_interrupted_time_series.py)),
+minimising the sum of squared residuals. Standard errors use the classical
+(nonrobust) formula, and each p-value comes from comparing the coefficient's
+t-statistic against a t-distribution with 80 degrees of freedom (84 months minus 4
+parameters). Note that this assumes independent errors; the regression's own
+Durbin-Watson statistic (0.255) indicates strong positive autocorrelation in monthly
+residuals, so these p-values are likely optimistic and would tighten under
+autocorrelation-robust (HAC) standard errors.
 
 ## Regression results
 
-A segmented (piecewise-linear) regression of national monthly dispensing around the
-1 April 2018 listing date, produced by
-[`src/analysis/01_interrupted_time_series.py`](../src/analysis/01_interrupted_time_series.py):
-
 | Term | Coefficient | Std. error | p-value |
 |---|---|---|---|
-| Intercept | -7.2 | 317.4 | 0.982 |
-| Pre-period trend (per month) | 32.1 | 20.9 | 0.130 |
-| **Level shift at listing** | **2,877.9** | 402.1 | **< 0.001** |
-| Post-period trend change (per month) | 25.8 | 22.0 | 0.244 |
+| Intercept (β0) | -7.2 | 317.4 | 0.982 |
+| Pre-period trend (β1, per month) | 32.1 | 20.9 | 0.130 |
+| **Level shift at listing (β2)** | **2,877.9** | 402.1 | **< 0.001** |
+| Post-period trend change (β3, per month) | 25.8 | 22.0 | 0.244 |
 
 N = 84 months, R² = 0.897. The level shift at the listing date is large and highly
 significant: national dispensing jumps by around 2,878 a month at April 2018, holding
@@ -38,8 +69,7 @@ without any modelling:
 
 - **A clear COVID-19 dip.** National dispensing falls from ~5,900 to ~3,800 a month
   during 2020, with the slowest recovery in Victoria, consistent with that state's
-  extended lockdowns, and a useful secondary natural experiment also discussed in
-  [`docs/scope_and_rationale.md`](../docs/scope_and_rationale.md).
+  extended lockdowns.
 - **NSW is already elevated before the national listing.** Its line separates from
   the other states well before April 2018, which is the first visual hint that the
   "before" period isn't as flat as a simple before/after comparison would assume,
