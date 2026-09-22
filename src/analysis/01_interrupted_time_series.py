@@ -6,7 +6,7 @@ regenerates the two supporting charts in reports/figures/
 (pbs_prep_dispensing_chart.png and pbs_epic_nsw_zoom_chart.png) before
 moving to the harder outcome question in 02_diff_in_diff.py.
 
-See docs/scope_and_rationale.md ("Causal question and design", Stage 1) for
+See docs/scope_and_rationale.md ("Causal question and methodology", Stage 1) for
 the full design rationale, including why this national-level test needs the
 staggered-adoption caveat addressed in 03_staggered_adoption.py. See
 reports/stage1_interrupted_time_series.md for the write-up of these results.
@@ -32,13 +32,13 @@ def state_label(state):
 
 def fit_segmented_regression(national):
     national = national.copy()
-    national["period_index"] = range(len(national))
+    national["t"] = range(len(national))
     national["post_listing"] = (national["month"] >= PBS_LISTING_DATE).astype(int)
-    national["months_since_listing_post"] = national["post_listing"] * (
-        national["period_index"] - national.loc[national["post_listing"] == 1, "period_index"].min()
+    national["months_since_post_listing"] = national["post_listing"] * (
+        national["t"] - national.loc[national["post_listing"] == 1, "t"].min()
     )
     return smf.ols(
-        "prep_dispensing_count ~ period_index + post_listing + months_since_listing_post",
+        "prep_dispensing_count ~ t + post_listing + months_since_post_listing",
         data=national,
     ).fit()
 
