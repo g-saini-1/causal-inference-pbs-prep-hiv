@@ -58,19 +58,25 @@ increasing order of rigour:
 
 1. **Stage 1: Did dispensing itself change sharply at the moment of the PBS
    listing?**
-   *Causal method: interrupted time series on dispensing.*
+
+   *Identification strategy: interrupted time series on dispensing.*
+
    The level shift at April 2018 is large and unambiguous (dispensing
    moves from near-zero to thousands a month). This step mainly
    demonstrates a clean segmented regression; the effect size is large
    enough to serve as a sanity check before the harder question.
+
    *Threat to identification: dispensing shows no sharp shift at April
    2018, e.g. a gradual increase already underway beforehand, or no
    discernible change around that date.*
+
 2. **Stage 2: Did the population PrEP targets see a larger drop in HIV
    notifications than other groups, beyond a trend they share?**
-   *Causal method: difference-in-differences on HIV notifications,
-   comparing diagnoses attributed to male-to-male sexual contact against
-   other transmission categories.*
+
+   *Identification strategy: difference-in-differences on HIV
+   notifications, comparing diagnoses attributed to male-to-male sexual
+   contact against other transmission categories.*
+
    PrEP overwhelmingly targets gay
    and bisexual men, so notifications attributed to heterosexual
    transmission or other categories form a natural control group that was
@@ -78,15 +84,19 @@ increasing order of rigour:
    between groups around April 2018 is a stronger causal method than a
    plain before/after comparison, since it nets out any general downward
    trend in HIV testing or awareness campaigns.
+
    *Threat to identification: the control group (heterosexual/other
    transmission) shows a drop of similar size to the MSM group after April
    2018, pointing to a shared secular trend rather than a PrEP-specific
    effect.*
+
 3. **Stage 3: Does NSW's earlier access via EPIC-NSW show the same decline
    earlier than the rest of the country, consistent with PrEP access
    itself driving it rather than some other national factor?**
-   *Causal method: staggered-adoption difference-in-differences, applied
-   at the state level.*
+
+   *Identification strategy: staggered-adoption difference-in-differences,
+   applied at the state level.*
+
    NSW ran a large PrEP
    demonstration trial (EPIC-NSW) from 2016, ahead of the national PBS
    listing, so NSW was effectively treated earlier than other states. This
@@ -96,19 +106,24 @@ increasing order of rigour:
    as Callaway and Sant'Anna, which also address the comparison problems
    that arise in classic two-way fixed-effects DiD when treatment timing
    varies across units.
+
    *Threat to identification: NSW's MSM notification decline starts at
    the same time as other states' (2018) rather than earlier (2016), or
    other states already show a decline before their own 2018 access,
    suggesting some other national factor is driving the trend rather than
    PrEP access timing itself.*
+
 4. **Stage 4 (optional): Did the size of the effect vary by state, and is
    that variation explained by state-level covariates?**
-   *Causal method: causal forest (CausalForestDML) heterogeneity
+
+   *Identification strategy: causal forest (CausalForestDML) heterogeneity
    analysis.*
+
    With state-level covariates, e.g.
    testing rates, population density of gay and bisexual populations, and
    socioeconomic indicators, a method such as EconML's CausalForestDML
    could estimate whether the PrEP effect varied by state.
+
    *Threat to identification: effect size shows no meaningful relationship
    with these covariates. Note this is weaker than the other three: a null
    result here would only mean the heterogeneity isn't explained by the

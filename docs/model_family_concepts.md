@@ -1,22 +1,25 @@
 # Choosing a regression model family
 
-*General reference: applies to any stage in this project whose outcome
-needs a model-family decision, not just Stage 1. This covers the framework
-for choosing among regression families in general (GLMs); OLS, Poisson, and
-Negative Binomial are used throughout as a running worked example (drawn
-from Stage 1's count outcome), but the same framework and checklist extend
-to other families too, e.g. logistic or beta regression for a binary or
-bounded outcome. Use this to support the "shortlist candidate statistical
-models" step; see the relevant stage's own report (e.g. `reports/stage1_interrupted_time_series.md`
-for Stage 1; its model-family comparison is pending and will land in a
-"Model family selection" section there once run) for how it was actually
-applied to that stage's data.*
+*General reference for choosing a model family within the GLM class, used
+by any stage in this project that needs one (currently Stages 1 and 2;
+see the README). OLS, Poisson, and Negative Binomial are used as the
+running example throughout, though the same framework applies to any
+family, e.g. logistic or beta regression. 
 
-## 1. Every GLM shares the same underlying structure
+*An identification strategy (e.g. interrupted time series) is the argument
+for why a comparison supports a causal claim; the model family covered
+here is how that comparison gets fit numerically. This document only
+concerns the latter.*
 
-Every regression model in the GLM (Generalized Linear Model) family, e.g.
-OLS, Poisson, Negative Binomial, logistic, beta, is built from the same
-three ingredients:
+## 1. Every model in the GLM class shares the same underlying structure
+
+Generalized Linear Models (GLM) are a model class: a broad group of
+regression models sharing a common structure. OLS, Poisson, Negative
+Binomial, logistic, and beta regression are each a family within that
+class (Negative Binomial and beta are GLM-adjacent extensions rather than
+strict textbook GLMs, but share the same structure and are treated the
+same way here). Every family in this class is built from the same three
+ingredients:
 
 1. **Linear predictor**: the plain weighted sum of predictors:
    `η[t] = β0 + β1 * t + β2 * Post[t] + β3 * (t * Post[t])`
@@ -24,7 +27,7 @@ three ingredients:
    predicted mean `μ[t]`, enforcing whatever constraints the outcome has.
 3. **Distribution family**: the assumed shape of random scatter around `μ[t]`.
 
-Any two candidates within this family differ *only* in ingredients 2 and 3.
+Any two candidates within this class differ *only* in ingredients 2 and 3.
 The linear predictor itself (and therefore whatever variables you've
 built from your data, e.g. `t`, `Post[t]`) stays the same
 regardless of which family you end up choosing. As a worked example, here's
@@ -98,8 +101,8 @@ carry a conclusion over from a different session or a different fit of the
 data. For each candidate, record:
 
 1. **Coefficients and their interpretation.** Note whether the model's
-   effects are additive (OLS: "+2,878 dispensings") or multiplicative
-   (Poisson/NB via the log link: "×49.6"). These aren't directly comparable
+   effects are additive (OLS, e.g. "+50 units") or multiplicative
+   (Poisson/NB via the log link, e.g. "×1.5"). These aren't directly comparable
    numbers, which is exactly why steps 2–4 below matter.
 2. **AIC** (Akaike Information Criterion). Unlike raw coefficients, AIC
    *is* directly comparable across different distribution families fit on
@@ -145,6 +148,9 @@ table once it exists.
 
 | Term | Meaning | Other common names |
 |---|---|---|
+| Model class | A broad group of regression models sharing a common structure (e.g. GLM) | Modeling framework |
+| Family | A specific distribution-and-link choice within a model class (e.g. Poisson, Negative Binomial) | N/A |
+| Model | A family fitted to specific data with specific predictors and estimated coefficients | Fitted model |
 | Outcome | The variable being predicted | Dependent variable, response, target |
 | Coefficient / parameter | A fixed value estimated by the model | N/A |
 | Variable | Has a different value at every row/time point | N/A |
