@@ -12,11 +12,20 @@ for Stage 1; its model-family comparison is pending and will land in a
 "Model family selection" section there once run) for how it was actually
 applied to that stage's data.*
 
-## 1. Every GLM shares the same underlying structure
+*An identification strategy (e.g. interrupted time series) is the argument
+for why a comparison supports a causal claim; the model family covered
+here is how that comparison gets fit numerically. This document only
+concerns the latter.*
 
-Every regression model in the GLM (Generalized Linear Model) family, e.g.
-OLS, Poisson, Negative Binomial, logistic, beta, is built from the same
-three ingredients:
+## 1. Every model in the GLM class shares the same underlying structure
+
+Generalized Linear Models (GLM) are a model class: a broad group of
+regression models sharing a common structure. OLS, Poisson, Negative
+Binomial, logistic, and beta regression are each a family within that
+class (Negative Binomial and beta are GLM-adjacent extensions rather than
+strict textbook GLMs, but share the same structure and are treated the
+same way here). Every family in this class is built from the same three
+ingredients:
 
 1. **Linear predictor**: the plain weighted sum of predictors:
    `η[t] = β0 + β1 * t + β2 * Post[t] + β3 * (t * Post[t])`
@@ -145,6 +154,9 @@ table once it exists.
 
 | Term | Meaning | Other common names |
 |---|---|---|
+| Model class | A broad group of regression models sharing a common structure (e.g. GLM) | Modeling framework |
+| Family | A specific distribution-and-link choice within a model class (e.g. Poisson, Negative Binomial) | N/A |
+| Model | A family fitted to specific data with specific predictors and estimated coefficients | Fitted model |
 | Outcome | The variable being predicted | Dependent variable, response, target |
 | Coefficient / parameter | A fixed value estimated by the model | N/A |
 | Variable | Has a different value at every row/time point | N/A |
