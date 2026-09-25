@@ -1,6 +1,6 @@
 # Causal method workflow template
 
-Use this once per causal method in the project's methodology (see
+Use this once per identification strategy in the project's methodology (see
 `scope_and_rationale.md`), one copy for Stage 1, one for Stage 2, and so
 on. Steps 1–2 are usually already answered for every stage up front, since
 they live in `scope_and_rationale.md`. Steps 3–9 are done separately per
@@ -11,9 +11,9 @@ stage, since they depend on that stage's specific data and model.
 | Step | What happens | Outcome |
 |---|---|---|
 | **1. Frame the question** | Plain-language, falsifiable question | *(see the stage's bold heading in `scope_and_rationale.md`)* |
-| **2. Choose the causal method** | Pick which comparison you'll trust to argue causality | *(the stage's named method in `scope_and_rationale.md`)* |
+| **2. Choose the identification strategy** | The argument for why a comparison supports a causal claim | *(the stage's identification strategy in `scope_and_rationale.md`)* |
 | **3. Understand the data structure** | Inspect grain, types, missingness | |
-| **4. Translate the causal method into variables** | Turn the chosen method into actual columns | |
+| **4. Translate the identification strategy into variables** | Turn the chosen strategy into actual columns | |
 | **5. Shortlist candidate statistical models** | Match outcome type to plausible regression families | |
 | **6. Choose among candidates with evidence** | Test assumptions, don't guess | |
 | **7. Fit the model** | Run it | |
@@ -25,10 +25,10 @@ stage, since they depend on that stage's specific data and model.
 | Step | What happens | Outcome |
 |---|---|---|
 | **1. Frame the question** | Plain-language, falsifiable question | "Did dispensing itself change sharply at the moment of the PBS listing?" |
-| **2. Choose the causal method** | Pick which comparison you'll trust to argue causality | Interrupted time series on dispensing |
+| **2. Choose the identification strategy** | The argument for why a comparison supports a causal claim | Interrupted time series on dispensing |
 | **3. Understand the data structure** | Inspect grain, types, missingness | Outcome is a non-negative count |
-| **4. Translate the causal method into variables** | Turn the chosen method into actual columns | `t`, `post_listing[t]`, `months_since_post_listing[t]` |
-| **5. Shortlist candidate statistical models** | Match outcome type to plausible regression families | OLS, Poisson, NB (see `docs/model_family_concepts.md` for the general reasoning) |
+| **4. Translate the identification strategy into variables** | Turn the chosen strategy into actual columns | `t`, `post_listing[t]`, `months_since_post_listing[t]` |
+| **5. Shortlist candidate statistical models** | Match outcome type to plausible regression families | OLS, Poisson, and NB (see `docs/model_family_concepts.md` for the general reasoning) |
 | **6. Choose among candidates with evidence** | Fit all shortlisted candidates and compare (see `docs/model_family_concepts.md`'s empirical comparison checklist) | *Pending, not yet run side-by-side; will be written up in a "Model family selection" section of `reports/stage1_interrupted_time_series.md` once run* |
 | **7. Fit the model** | Run it | *Pending final model choice* |
 | **8. Diagnose and validate** | Check assumptions held up | Durbin-Watson = 0.255 found for the OLS fit (strong autocorrelation), not yet checked for other candidates |
@@ -38,22 +38,22 @@ stage, since they depend on that stage's specific data and model.
 
 Two jobs, from the same table:
 
-**As a progress tracker.** An empty Outcome cell means that step hasn't
-been done yet for that stage. Stage 1's own table above still shows step 8
-open, which is an accurate, at-a-glance status, not just a to-do note. When
-starting Stage 2, copy the template into a new file (`stage2_workflow.md`,
-see "Practically" below) and fill cells in as the work happens rather than
-after the fact. This keeps the table honest as a status view rather than
-something reconstructed retrospectively at write-up time.
+**As a progress tracker.** An Outcome cell marked *Pending*, or filled in
+only partway, means that step isn't finished yet for that stage. Stage 1's
+own table above shows both: step 8 has a partial result (OLS only, not yet
+the other candidates), and steps 6, 7, and 9 are still marked *Pending*, an
+accurate, at-a-glance status, not just a to-do note. When starting Stage 2,
+copy the template into a new file (`stage2_workflow.md`, see "Practically"
+below) and fill cells in as the work happens rather than after the fact.
+This keeps the table honest as a status view rather than reconstructed
+later.
 
 **As an index into the detailed docs.** Most Outcome cells are short
 because the full reasoning lives elsewhere: general, reusable reasoning in
-a stage-agnostic reference (e.g. `docs/model_family_concepts.md` for step 5),
-and the specific application, fitted results, and interpretation in a
-per-stage report (e.g. `reports/stage1_interrupted_time_series.md` for
-Stage 1; its model-family comparison for steps 5–6 is pending and will
-land in a "Model family selection" section there once run).
-Once a stage has a detailed doc for a given step, link to it from that cell
+a stage-agnostic reference (e.g. `docs/model_family_concepts.md`), and the
+specific application, fitted results, and interpretation in a per-stage
+report (e.g. `reports/stage1_interrupted_time_series.md`). Once a stage
+has a detailed doc for a given step, link to it from that cell
 instead of re-describing it. The table becomes a map of "what's been
 decided and where the reasoning for it lives," which is more useful once
 the project has several stages' worth of documents than trying to hold
