@@ -13,8 +13,8 @@ stage, since they depend on that stage's specific data and model.
 | **1. Frame the question** | Plain-language, falsifiable question | *(see the stage's bold heading in `scope_and_rationale.md`)* |
 | **2. Choose the identification strategy** | The argument for why a comparison supports a causal claim | *(the stage's identification strategy in `scope_and_rationale.md`)* |
 | **3. Understand the data structure** | Inspect grain, types, missingness | |
-| **4. Translate the identification strategy into variables** | Turn the chosen strategy into actual columns | |
-| **5. Shortlist candidate statistical models** | Match outcome type to plausible regression families | |
+| **4. Translate the identification strategy into variables** | Identify the outcome and the variables that encode the comparison (e.g. treatment timing, trend terms) | |
+| **5. Shortlist candidate statistical models** | Match outcome type to plausible regression families, using the Decision checklist in `docs/model_family_concepts.md` | |
 | **6. Choose among candidates with evidence** | Test assumptions, don't guess | |
 | **7. Fit the model** | Run it | |
 | **8. Diagnose and validate** | Check assumptions held up | |
@@ -26,9 +26,9 @@ stage, since they depend on that stage's specific data and model.
 |---|---|---|
 | **1. Frame the question** | Plain-language, falsifiable question | "Did dispensing itself change sharply at the moment of the PBS listing?" |
 | **2. Choose the identification strategy** | The argument for why a comparison supports a causal claim | Interrupted time series on dispensing |
-| **3. Understand the data structure** | Inspect grain, types, missingness | Outcome is a non-negative count |
-| **4. Translate the identification strategy into variables** | Turn the chosen strategy into actual columns | `t`, `post_listing[t]`, `months_since_post_listing[t]` |
-| **5. Shortlist candidate statistical models** | Match outcome type to plausible regression families | OLS, Poisson, and NB (see `docs/model_family_concepts.md` for the general reasoning) |
+| **3. Understand the data structure** | Inspect grain, types, missingness | Monthly, national aggregate (summed across states from the underlying state × month data); 84 consecutive months (January 2016 to December 2022), no missing months; outcome is a non-negative count |
+| **4. Translate the identification strategy into variables** | Identify the outcome and the variables that encode the comparison (e.g. treatment timing, trend terms) | An outcome variable (monthly dispensing), a treatment-timing indicator (0 before the listing, 1 after) whose coefficient is the level shift, and two trend terms: the pre-existing trend, and the extra slope added after listing. Full definitions and variable names in Model specification, `reports/stage1_interrupted_time_series.md` |
+| **5. Shortlist candidate statistical models** | Match outcome type to plausible regression families, using the Decision checklist in `docs/model_family_concepts.md` | OLS, Poisson, and NB (see `docs/model_family_concepts.md` for the general reasoning) |
 | **6. Choose among candidates with evidence** | Fit all shortlisted candidates and compare (see `docs/model_family_concepts.md`'s empirical comparison checklist) | *Pending, not yet run side-by-side; will be written up in a "Model family selection" section of `reports/stage1_interrupted_time_series.md` once run* |
 | **7. Fit the model** | Run it | *Pending final model choice* |
 | **8. Diagnose and validate** | Check assumptions held up | Durbin-Watson = 0.255 found for the OLS fit (strong autocorrelation), not yet checked for other candidates |

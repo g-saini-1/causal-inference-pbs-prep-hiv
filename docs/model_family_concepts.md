@@ -78,21 +78,22 @@ look at whether `α` is estimated as meaningfully greater than zero.
 
 ## 4. Decision checklist
 
-This is the generic starting point for any stage's outcome: walk down
-until one applies, regardless of whether the eventual comparison ends up
-being OLS vs. Poisson vs. NB or something else entirely:
+This is the generic starting point for identifying a candidate family for
+any stage's outcome. Walk down the questions and stop at the first row
+that applies, regardless of whether the eventual comparison ends up being
+OLS vs. Poisson vs. NB or a different family entirely:
 
-| Question | If yes → | Why |
+| Question | Candidate family | Why |
 |---|---|---|
-| Continuous, roughly symmetric, can plausibly go negative? | OLS | Its noise assumption fits. |
-| A count (0, 1, 2, ...) that can't go negative? | Poisson or NB | Keeps predictions valid. |
-| ...and does variance exceed the mean? | NB over Poisson | Poisson understates uncertainty otherwise. |
-| Binary outcome? | Logistic | Line can't be restricted to {0,1} otherwise. |
-| Bounded proportion (0–1)? | Binomial / Beta | Keeps predictions in range. |
+| Continuous, roughly symmetric, and can plausibly go negative? | OLS | Its Gaussian noise assumption fits an outcome that's unbounded and symmetric. |
+| A count (0, 1, 2, ...) that can't go negative? | Poisson or NB; NB specifically if variance exceeds the mean | Poisson and NB predictions stay non-negative, unlike OLS's; NB is preferred over Poisson when variance exceeds the mean, since Poisson would otherwise understate uncertainty. |
+| Binary outcome (two categories, e.g. yes/no)? | Logistic | Its logit link keeps predictions confined to (0,1), unlike a raw linear predictor. |
+| Bounded proportion (0–1)? | Binomial / Beta | Keeps predictions inside the valid range, same reasoning as the binary case. |
 
 This checklist narrows the *shortlist*: it identifies which families are
 plausible candidates. It is not, by itself, sufficient to declare a winner:
-that requires actually fitting the candidates and comparing them, below.
+that requires actually fitting the candidates and comparing them; Section
+5's Empirical comparison checklist covers exactly that.
 
 ## 5. Empirical comparison checklist
 
