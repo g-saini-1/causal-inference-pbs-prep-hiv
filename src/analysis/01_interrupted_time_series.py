@@ -2,9 +2,10 @@
 
 Sanity-check step: fits a segmented (piecewise-linear) regression around the
 1 April 2018 PBS listing date on the national monthly dispensing series, and
-regenerates the two supporting charts in reports/figures/
-(pbs_prep_dispensing_chart.png and pbs_epic_nsw_zoom_chart.png) before
-moving to the harder outcome question in 02_diff_in_diff.py.
+regenerates the four supporting charts in reports/figures/
+(pbs_prep_dispensing_chart.png, pbs_epic_nsw_zoom_chart.png,
+pbs_prep_its_specification_chart.png, and pbs_prep_fitted_model_chart.png)
+before moving to the harder outcome question in 02_diff_in_diff.py.
 
 See docs/scope_and_rationale.md ("Causal question and methodology", Stage 1) for
 the full design rationale, including why this national-level test needs the
@@ -37,10 +38,12 @@ def fit_segmented_regression(national):
     national["months_since_post_listing"] = national["post_listing"] * (
         national["t"] - national.loc[national["post_listing"] == 1, "t"].min()
     )
-    return smf.ols(
+    model = smf.ols(
         "prep_dispensing_count ~ t + post_listing + months_since_post_listing",
         data=national,
     ).fit()
+    national["fitted"] = model.fittedvalues
+    return model, national
 
 
 def plot_full_series(df, national):
@@ -89,17 +92,107 @@ def plot_nsw_pretrend(df):
     return save_figure(fig, "pbs_epic_nsw_zoom_chart.png")
 
 
+def plot_fitted_model(national):
+    fig, ax = plt.subplots()
+    ax.scatter(national["month"], national["prep_dispensing_count"], color=NATIONAL_COLOR,
+               s=18, alpha=0.5, label="Actual")
+
+    pre = national[national["post_listing"] == 0]
+    post = national[national["post_listing"] == 1]
+    ax.plot(pre["month"], pre["fitted"], color="firebrick", linewidth=2.5, label="Fitted, pre-listing")
+    ax.plot(post["month"], post["fitted"], color="firebrick", linewidth=2.5, linestyle="--",
+            label="Fitted, post-listing")
+
+    ax.axvline(PBS_LISTING_DATE, color="grey", linestyle=":", linewidth=1.5)
+    top = ax.get_ylim()[1]
+    ax.text(PBS_LISTING_DATE, top * 0.92, "  PBS listing (Apr 2018)", color="grey", ha="left", va="top")
+
+    ax.set_title("Segmented regression fit vs. actual dispensing, national PBS PrEP, Jan 2016 - Dec 2022")
+    ax.set_ylabel("Dispensing count per month")
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=3, frameon=False)
+    return save_figure(fig, "pbs_prep_fitted_model_chart.png")
+
+
+def plot_its_specification(national, model):
+    fig, ax = plt.subplots()
+
+    beta0 = model.params["Intercept"]
+    beta1 = model.params["t"]
+
+    pre = national[national["post_listing"] == 0].reset_index(drop=True)
+    post = national[national["post_listing"] == 1].reset_index(drop=True)
+    listing_date = post["month"].iloc[0]
+    t_listing = post["t"].iloc[0]
+    pre_extrapolated = beta0 + beta1 * t_listing
+    post_start = post["fitted"].iloc[0]
+
+    ax.plot(pre["month"], pre["fitted"], color="firebrick", linewidth=2.5, label="Pre-listing fit")
+    ax.plot(post["month"], post["fitted"], color="firebrick", linewidth=2.5, linestyle="--",
+            label="Post-listing fit")
+
+    # counterfactual: the pre-listing trend extended across the whole post period,
+    # this doubles as the beta3 reference (gap vs. the actual post-listing fit) and
+    # as the causal-inference counterfactual (gap vs. observed = the treatment effect)
+    counterfactual = beta0 + beta1 * post["t"]
+    ax.plot(post["month"], counterfactual, color="grey", linewidth=1.6, linestyle=":",
+            label="Counterfactual (pre-trend continued)")
+    ax.fill_between(post["month"], counterfactual, post["fitted"], color="firebrick", alpha=0.1)
+
+    ax.axvline(listing_date, color="black", linewidth=1.2)
+    top = ax.get_ylim()[1]
+    ax.text(listing_date, top * 0.96, "  Treatment:\n  PBS listing (Apr 2018)", fontsize=9,
+            ha="left", va="top")
+
+    # beta2: the level shift at the listing date (also the treatment effect at t=0)
+    ax.annotate("", xy=(listing_date, post_start), xytext=(listing_date, pre_extrapolated),
+                arrowprops=dict(arrowstyle="<->", color="black", linewidth=1.3))
+    ax.text(listing_date, (pre_extrapolated + post_start) / 2, "  β2\n  (level shift)",
+            va="center", ha="left", fontsize=10)
+
+    # beta0: the pre-listing intercept
+    ax.annotate("β0 (intercept)", xy=(pre["month"].iloc[0], beta0),
+                xytext=(pre["month"].iloc[5], 2200), fontsize=9.5, color="firebrick",
+                arrowprops=dict(arrowstyle="->", color="firebrick", linewidth=1))
+
+    # beta1: shown as an explicit rise-over-run triangle on the pre-listing line
+    i1, i2 = len(pre) // 6, 5 * len(pre) // 6
+    x1, y1 = pre["month"].iloc[i1], pre["fitted"].iloc[i1]
+    x2, y2 = pre["month"].iloc[i2], pre["fitted"].iloc[i2]
+    ax.plot([x1, x2], [y1, y1], color="grey", linewidth=1, linestyle="--")
+    ax.plot([x2, x2], [y1, y2], color="grey", linewidth=1, linestyle="--")
+    ax.annotate("β1 = rise ÷ run", xy=(x2, (y1 + y2) / 2), xytext=(18, 0),
+                textcoords="offset points", fontsize=9.5, color="firebrick", va="center")
+
+    # beta3: the gap between the counterfactual (beta1's slope) and the actual, steeper
+    # post-listing fit a year on, this is also part of the shaded treatment effect
+    ref_idx = min(12, len(post) - 1)
+    ref_x = post["month"].iloc[ref_idx]
+    ref_y = counterfactual.iloc[ref_idx]
+    actual_y = post["fitted"].iloc[ref_idx]
+    ax.annotate("", xy=(ref_x, actual_y), xytext=(ref_x, ref_y),
+                arrowprops=dict(arrowstyle="->", color="firebrick", linewidth=1.3))
+    ax.annotate("β3 (extra slope\nper month)", xy=(ref_x, (ref_y + actual_y) / 2), xytext=(18, 0),
+                textcoords="offset points", fontsize=9.5, color="firebrick", va="center")
+
+    ax.set_title("Segmented regression: coefficients and causal concepts, both geometrically")
+    ax.set_ylabel("Dispensing count per month")
+    ax.legend(loc="upper left", frameon=False, fontsize=9)
+    return save_figure(fig, "pbs_prep_its_specification_chart.png")
+
+
 def main():
     set_style()
     df = load_pbs_dispensing()
     national = df.groupby("month", as_index=False)["prep_dispensing_count"].sum()
 
-    model = fit_segmented_regression(national)
+    model, national_fit = fit_segmented_regression(national)
     print(model.summary())
 
     full_path = plot_full_series(df, national)
     zoom_path = plot_nsw_pretrend(df)
-    print(f"\nFigures written:\n - {full_path}\n - {zoom_path}")
+    spec_path = plot_its_specification(national_fit, model)
+    fitted_path = plot_fitted_model(national_fit)
+    print(f"\nFigures written:\n - {full_path}\n - {zoom_path}\n - {spec_path}\n - {fitted_path}")
 
 
 if __name__ == "__main__":

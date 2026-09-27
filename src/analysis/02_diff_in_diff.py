@@ -11,6 +11,14 @@ TODO: fit the two-way fixed effects DiD model
 and report the interaction coefficient (the DiD estimate) with robust /
 clustered (by state) standard errors. Plot MSM vs. control group trends
 around the listing date to reports/figures/diff_in_diff_trends.png.
+
+TODO: reconsider "control group" terminology when writing this stage up.
+Stage 1's report settled on "comparison group" as the more accurate term
+for a non-randomised design ("control group" implies random assignment,
+which nothing in this project has). Heterosexual/Other notifications here
+are a comparison group in that same sense; decide whether to rename this
+docstring and any write-up to match, or keep "control group" if there's a
+reason to treat Stage 2 differently.
 """
 
 import os
