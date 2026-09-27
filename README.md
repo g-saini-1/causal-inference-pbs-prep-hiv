@@ -1,5 +1,7 @@
 # Did subsidising HIV prevention medication reduce diagnoses? A causal inference case study using synthetic data
 
+**Methods & tools:** Python, pandas, statsmodels, synthetic data validation. *Implemented:* interrupted time series with OLS (Poisson/Negative Binomial comparison pending). *Planned:* difference-in-differences, staggered-adoption analysis, causal forest heterogeneity analysis (EconML).
+
 ## Status
 
 Portfolio project in progress: the data and reproducibility foundation are done, Stage 1 is nearly finalized, and Stages 2-4 (the actual causal claim) are still ahead.
@@ -11,6 +13,14 @@ Portfolio project in progress: the data and reproducibility foundation are done,
 | Not started | Stage 2: Difference-in-differences | Will compare MSM vs. other transmission categories to isolate the policy effect | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) |
 | Not started | Stage 3: Staggered-adoption analysis | Will use NSW's earlier EPIC-NSW trial as a staggered-treatment design | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) |
 | Not started | Stage 4 (optional): Causal forest heterogeneity | Will examine state-level heterogeneity in treatment effects | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) |
+
+## What this demonstrates
+
+Beyond fitting models, this project applies the reasoning causal inference requires: choosing an identification strategy and being explicit about what would threaten it, selecting a statistical model family with evidence, and documenting where the real data had genuine gaps and adjusting the design around them. Stage 1's causal design, shown below, ties the regression coefficients directly to the underlying causal concepts: treatment, counterfactual, treatment effect.
+
+![Segmented regression: coefficients and causal concepts, both shown geometrically](reports/figures/pbs_prep_its_specification_chart.png)
+
+See [Methodology tooling](#methodology-tooling) below for the reusable frameworks this produced.
 
 ## Approach
 
