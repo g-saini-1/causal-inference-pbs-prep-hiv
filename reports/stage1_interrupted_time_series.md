@@ -1,8 +1,55 @@
 # Stage 1: Interrupted time series on PrEP dispensing
 
-Sanity-check step in the four-stage design: does national PBS PrEP dispensing show
-the level shift the project's causal argument depends on, and is a simple national
-break test even valid here?
+Sanity-check step in the project's four-stage causal design: using interrupted time
+series as the identification strategy (see `docs/scope_and_rationale.md`), does
+national PBS PrEP dispensing show the level shift the project's causal argument
+depends on, and is a simple national break test even valid here?
+
+## What is an interrupted time series, and why use it here?
+
+Interrupted time series (ITS) is an identification strategy: it argues that if an
+outcome measured repeatedly over time visibly breaks, a jump in level, a change in
+slope, or both, exactly when a specific event happened, that event most plausibly
+caused the break. It compares the outcome's trajectory before the event against its
+trajectory after; the pre-period trend stands in for the counterfactual, what the
+outcome would plausibly have kept doing without the intervention. Here, the event is
+the 1 April 2018 PBS listing and the outcome is national monthly PrEP dispensing:
+Stage 1 asks whether dispensing itself broke sharply at that date.
+
+**Strength.** ITS needs only one time series and a known intervention date; no
+matched comparison group is required. (A "control group" implies random assignment;
+since nothing in this project is randomly assigned, "comparison group" is the more
+accurate term used throughout.) It suits policy changes that affect an entire
+population at once, such as a PBS listing, where a comparison group is hard or
+impossible to construct.
+
+**Pros:**
+
+- Works with a single series and no comparison group, useful when everyone is
+  treated at once.
+- The identifying logic is visible in the same chart used to argue for it: a reader
+  can see the break directly.
+- Detects both an immediate level change and a change in the underlying trend, not
+  just an average before/after difference.
+
+**Cons:**
+
+- Vulnerable to any other event coinciding with the intervention date, e.g. a
+  different policy or a seasonal effect, since there is no comparison group to net
+  that out.
+- Needs a long enough pre-period to establish what the trend was actually doing
+  beforehand; a short or noisy pre-period weakens the counterfactual.
+- Assumes the functional form (here, linear pre- and post-trends) is correct; a
+  genuine nonlinear trend can be mistaken for a level shift, or vice versa.
+- A single national break test can misattribute an already-underway regional trend
+  to the national-level event, addressed for this project's own case below.
+
+Because of these limitations, particularly the missing comparison group and the risk
+of misattributing a regional trend, this project's four-stage causal design (see
+`docs/scope_and_rationale.md`) treats Stage 1 as a sanity check rather than the final
+causal claim: ITS on its own establishes that dispensing changed sharply at the right
+moment, which is necessary but not sufficient to argue the PBS listing caused a
+downstream reduction in HIV diagnoses.
 
 ## Model specification
 
@@ -28,6 +75,31 @@ Coefficients:
 - `β2`: level shift: the immediate jump in dispensing at treatment (April 2018)
 - `β3`: change in slope after treatment, so the post-period trend equals β1 + β3.
 
+**Table 1.** Causal concepts mapped to this design's specification.
+
+| Causal concept | What it is in this design |
+|---|---|
+| Treatment | The 1 April 2018 PBS listing |
+| Treated unit | The single national dispensing series (not a group compared against a separate group) |
+| Comparison group | Not used in this design; ITS relies on the treated unit's own extrapolated pre-trend instead. Stage 2 uses one |
+| Counterfactual | The pre-listing trend extrapolated forward: what dispensing would have been without the listing |
+| Treatment effect | The gap between observed post-listing dispensing and the counterfactual: β2 at the listing date, growing by β3 each month after |
+
+![Segmented regression: coefficients and causal concepts, both shown geometrically](figures/pbs_prep_its_specification_chart.png)
+
+Each coefficient corresponds to a distinct visual feature of the segmented
+regression: `β0` is where the pre-listing line meets t=0; `β1` is that line's
+slope; `β2` is the vertical jump at the listing date, the gap between where the
+pre-listing trend would have landed and where the post-listing line actually
+starts; `β3` is the extra slope added after the listing. The grey dotted line is
+the counterfactual from Table 1, the pre-listing trend extended forward as if
+the listing had not happened; the shaded gap between it and the observed
+post-listing line is the treatment effect, β2 immediately and growing by β3
+every month after. This is the same fitted model shown with its actual data in
+Figure 2 below; the framing here is structural, what each term in the equation
+means geometrically, before the "Regression results" section reports the
+fitted values themselves.
+
 ## Model fitting
 
 The coefficients are estimated by ordinary least squares
@@ -43,6 +115,8 @@ autocorrelation-robust (HAC) standard errors.
 
 ## Regression results
 
+**Table 2.** OLS estimates for the four coefficients in the specification above.
+
 | Term | Coefficient | Std. error | p-value |
 |---|---|---|---|
 | Intercept (β0) | -7.2 | 317.4 | 0.982 |
@@ -55,6 +129,53 @@ significant: national dispensing jumps by around 2,878 a month at April 2018, ho
 the pre-existing trend constant. The pre- and post-period trend terms are not
 significant on their own, consistent with the shift being a genuine step change
 rather than a gradual acceleration.
+
+## Interpreting the coefficients and identifying the causal parameter
+
+![Segmented regression fit vs. actual dispensing, national PBS PrEP, January 2016 to December 2022](figures/pbs_prep_fitted_model_chart.png)
+
+Each coefficient in `dispensing[t] = β0 + β1·t + β2·post_listing[t] +
+β3·months_since_post_listing[t] + ε[t]` answers a different question about the
+series:
+
+- **β0 (intercept, -7.2, not significant)**: the fitted dispensing level at t=0
+  (January 2016). Not meaningful on its own; dispensing was genuinely near zero
+  before the trial and listing began, so a fitted intercept near zero is expected,
+  not a finding.
+- **β1 (pre-period trend, 32.1 dispensings/month, p=0.130)**: how fast national
+  dispensing was already rising before the listing, driven mostly by NSW's early
+  EPIC-NSW access. Not statistically significant on its own, consistent with
+  pre-listing dispensing being small and only slowly rising nationally.
+- **β2 (level shift, 2,877.9 dispensings, p<0.001)**: the immediate jump in
+  dispensing at the April 2018 listing, holding the pre-existing trend constant.
+  **This is the causal parameter of interest.** It is what Stage 1 exists to
+  estimate: does dispensing itself move sharply at the moment PrEP became
+  subsidised? At 2,877.9 and highly significant, the answer is unambiguously yes.
+- **β3 (post-period trend change, 25.8 dispensings/month, p=0.244)**: whether the
+  monthly growth rate itself changed after the listing, on top of the one-time
+  jump. Not significant here, consistent with the level shift being a step change
+  rather than an accelerating trend.
+
+**Why β2, specifically, is the causal parameter.** The identification strategy
+(interrupted time series) argues that a comparison of dispensing immediately before
+and after the listing supports a causal claim, provided nothing else plausibly
+changed at exactly that date (see the "Threat to identification" for this stage in
+`docs/scope_and_rationale.md`). β2 is the coefficient that captures exactly that
+before/after comparison; β0, β1, and β3 describe the surrounding trend, but only β2
+measures the discontinuity the identification strategy is built around.
+
+**Residual error, ε[t].** ε[t] is what the model does not explain: the gap between
+each month's actual dispensing and the value the fitted equation predicts for that
+month. OLS assumes these residuals are independent from one month to the next.
+Figure 2 makes that assumption's failure visible: actual dispensing swings above
+and below the post-listing fitted line in a smooth wave, not random scatter, the
+initial overshoot in 2019, the COVID-era dip in 2020, and the recovery after. The
+regression's own Durbin-Watson statistic (0.255, far from the 2 that would indicate
+independence) confirms it: residuals are strongly autocorrelated. This does not
+undermine the β2 finding itself, a jump of 2,878 against near-zero baseline
+dispensing is not a subtle result, but it does mean the reported standard errors and
+p-values are likely too optimistic, exactly the issue the pending OLS/Poisson/NB
+comparison (see `docs/model_family_concepts.md`) exists to address.
 
 ## Visual check: does the dispensing data show the expected level shift?
 
@@ -79,7 +200,7 @@ without any modelling:
 
 ![PBS PrEP dispensing, EPIC-NSW trial to PBS listing, January 2016 to April 2018](figures/pbs_epic_nsw_zoom_chart.png)
 
-The chart above zooms into January 2016 to April 2018, on a y-axis scaled to the
+Figure 4 zooms into January 2016 to April 2018, on a y-axis scaled to the
 pre-listing range rather than the full national scale (where these numbers would be
 flattened near zero). Two things stand out:
 
@@ -92,4 +213,4 @@ flattened near zero). Two things stand out:
   some of NSW's already-established upward trend to the listing itself. Treating NSW
   as an earlier-treated unit (from 2016) and the rest of the country as later-treated
   (from 2018), a staggered-adoption design, is the more defensible way to use this
-  same data, and this chart is the clearest single piece of evidence for why.
+  same data, and Figure 4 is the clearest single piece of evidence for why.
