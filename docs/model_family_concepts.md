@@ -11,7 +11,7 @@ outcomes before and after treatment) is the argument for why a comparison
 supports a causal claim; the model family covered here is how that
 comparison gets fit numerically. This document only concerns the latter.
 
-## 1. Every model in the GLM class shares the same underlying structure
+## 1. Every family in the GLM class shares the same underlying structure
 
 Generalized Linear Models (GLM) are a model class: a broad group of
 regression models sharing a common structure. OLS, Poisson, Negative
@@ -47,7 +47,20 @@ The same three-row comparison could be built for any other pair or triple,
 e.g. logistic regression uses a *logit* link and a Bernoulli distribution,
 for a binary outcome instead of a count.
 
-## 2. Why the link function matters
+## 2. Every family in the GLM class is fit the same way
+
+Every family in this class is fit by maximum likelihood: finding the
+coefficients that make the observed data as probable as possible under the
+assumed distribution. For a Gaussian distribution, that turns out to be
+mathematically identical to minimising the sum of squared errors, which is
+why OLS has a direct, closed-form solution. For Poisson, NB, and most
+other distributions, maximising the likelihood does not simplify that
+way, so the coefficients are instead found iteratively: an initial guess
+is refined step by step until further adjustment stops improving the fit.
+The distribution family (ingredient 3) is what decides which of these two
+situations applies, not a separate choice made per family.
+
+## 3. Why the link function matters
 
 The **identity link** (OLS) lets predictions be any real number, positive
 or negative, which is a problem for a count that can never go below zero.
@@ -59,7 +72,7 @@ links serve the same purpose for other constraints: the *logit* link (used
 in logistic regression) keeps predictions inside (0,1) for a binary or
 probability outcome.
 
-## 3. Example: choosing between two counts models (Poisson vs. NB)
+## 4. Example: choosing between two count families (Poisson vs. NB)
 
 Both use the log link and both are built for counts. The difference is the
 **mean–variance relationship**:
@@ -76,7 +89,7 @@ standard errors, making effects look more statistically significant than
 they really are. This is checkable, not a matter of preference: fit NB and
 look at whether `α` is estimated as meaningfully greater than zero.
 
-## 4. Decision checklist
+## 5. Decision checklist
 
 This is the generic starting point for identifying a candidate family for
 any stage's outcome. Walk down the questions and stop at the first row
@@ -93,9 +106,9 @@ OLS vs. Poisson vs. NB or a different family entirely:
 This checklist narrows the *shortlist*: it identifies which families are
 plausible candidates. It is not, by itself, sufficient to declare a winner:
 that requires actually fitting the candidates and comparing them; Section
-5's Empirical comparison checklist covers exactly that.
+6's Empirical comparison checklist covers exactly that.
 
-## 5. Empirical comparison checklist
+## 6. Empirical comparison checklist
 
 Once a shortlist of plausible families exists (typically 2–3, from the
 decision checklist above), fit all of them on the same outcome and data
@@ -105,12 +118,24 @@ before choosing. For each candidate, record:
    effects are additive (OLS, e.g. "+50 units") or multiplicative
    (Poisson and NB, via the log link, e.g. "×1.5"), these aren't directly comparable
    numbers, which is exactly why steps 2–4 below matter.
+
+   *Does not rank the candidates: this item is for understanding each
+   one's effect in its own terms, focusing on the coefficient for the
+   causal parameter specifically, not every coefficient in the model.*
 2. **AIC** (Akaike Information Criterion, see Glossary). A difference of
    more than ~2 between candidates is usually considered meaningful, not
    noise.
+
+   *The one item of the four that directly ranks the candidates against
+   each other.*
 3. **An assumption check specific to each candidate.** Watch
    for cases where two candidates share the same assumption rather than
    each having an independent one.
+
+   *A pass/fail check per candidate, not a ranking: a candidate whose own
+   assumption does not hold is undermined regardless of how it performs
+   on the other items.*
+
    - **OLS**: independent residuals (Durbin-Watson, see Glossary).
    - **Poisson and NB**: share one assumption, whether
      variance exceeds the mean (the dispersion test, see Glossary); treat
@@ -123,7 +148,12 @@ before choosing. For each candidate, record:
    just testing the same thing from different angles, and don't double-count
    the latter.
 4. **Residual autocorrelation over time.** One check that applies
-   regardless of which candidate is being compared:
+   regardless of which candidate is being compared.
+
+   *Also a pass/fail check per candidate, not a ranking: if every
+   candidate fails it, that is not a tie, it means the issue lies outside
+   family choice and needs its own remedy.*
+
    - **OLS**: reuses the same Durbin-Watson check as its assumption check
      above.
    - **Poisson and NB**: picking a count model over OLS fixes "can't predict
@@ -153,7 +183,7 @@ be selected. The selection should cite the specific numbers that decided
 it (e.g. "NB's AIC was X points lower than Poisson's, and its `α`
 confidence interval excluded zero").
 
-## 6. Glossary
+## 7. Glossary
 
 | Term | Meaning | Other common names |
 |---|---|---|
