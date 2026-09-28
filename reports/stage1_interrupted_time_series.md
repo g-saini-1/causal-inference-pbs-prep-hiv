@@ -100,7 +100,50 @@ Figure 2 below; the framing here is structural, what each term in the equation
 means geometrically, before the "Regression results" section reports the
 fitted values themselves.
 
+## Model family selection
+
+The Decision checklist in `docs/model_family_concepts.md` identifies Poisson and NB
+as the plausible candidates for a non-negative count outcome; OLS is included
+alongside them as a baseline, not because the checklist selects it. Choosing among
+the three requires the Empirical comparison checklist (`docs/model_family_concepts.md`,
+Section 6): fit all three on the same specification and work through its four items
+in turn. The first two are below; the assumption check and the autocorrelation check
+are the next step.
+
+**Table 2.** Empirical comparison checklist, items 1-2, for all three candidates
+fitted on the specification in Model specification above.
+
+| Candidate | Coefficients (β2) | AIC | Assumption check | Autocorrelation check |
+|---|---|---|---|---|
+| OLS | +2,877.9 (additive) | 1,375.0 | *Pending* | *Pending* |
+| Poisson | ×3.57 (multiplicative) | 17,602.3 | *Pending* | *Pending* |
+| NB | ×2.13 (multiplicative) | 1,387.2 | *Pending* | *Pending* |
+
+**1. Coefficients and their interpretation.** β2, the coefficient compared across
+all three candidates, captures the before/after discontinuity the identification
+strategy is built on; β0, β1, and β3 describe the surrounding trend, not the
+discontinuity itself. The values in Table 2 above aren't directly comparable, since OLS's β2 is
+additive and Poisson's and NB's are multiplicative; this item describes each
+candidate's own effect, not a ranking.
+
+**2. AIC.** Ranked from best (lowest) to worst:
+
+1. **OLS**: 1,375.0
+2. **NB**: 1,387.2 (12.2 points higher than OLS)
+3. **Poisson**: 17,602.3 (16,227.3 points higher than OLS, decisively ruled out)
+
+The OLS-NB gap exceeds the ~2-point threshold usually considered meaningful, so AIC
+currently favours OLS. This is the one item of the four that directly ranks the
+candidates, so it is a real point in OLS's favour, though not yet the full picture:
+the assumption check and the autocorrelation check are still pending.
+
 ## Model fitting
+
+*Provisional from here through "Interpreting the coefficients and identifying the
+causal parameter": OLS is used below because it currently leads on AIC in Model
+family selection above, not because a family has been settled on. These sections
+will be revisited once that section's assumption check and autocorrelation check are
+done.*
 
 The coefficients are estimated by ordinary least squares
 (`smf.ols(...).fit()` in
@@ -115,7 +158,7 @@ autocorrelation-robust (HAC) standard errors.
 
 ## Regression results
 
-**Table 2.** OLS estimates for the four coefficients in the specification above.
+**Table 3.** OLS estimates for the four coefficients in the specification above.
 
 | Term | Coefficient | Std. error | p-value |
 |---|---|---|---|
@@ -161,8 +204,10 @@ series:
 and after the listing supports a causal claim, provided nothing else plausibly
 changed at exactly that date (see the "Threat to identification" for this stage in
 `docs/scope_and_rationale.md`). β2 is the coefficient that captures exactly that
-before/after comparison; β0, β1, and β3 describe the surrounding trend, but only β2
-measures the discontinuity the identification strategy is built around.
+before/after comparison, regardless of which family estimates it; β0, β1, and β3
+describe the surrounding trend but don't measure the discontinuity itself. This is
+also why the empirical comparison in Model family selection above is made on β2
+specifically, not on every coefficient.
 
 **Residual error, ε[t].** ε[t] is what the model does not explain: the gap between
 each month's actual dispensing and the value the fitted equation predicts for that
@@ -174,8 +219,10 @@ regression's own Durbin-Watson statistic (0.255, far from the 2 that would indic
 independence) confirms it: residuals are strongly autocorrelated. This does not
 undermine the β2 finding itself, a jump of 2,878 against near-zero baseline
 dispensing is not a subtle result, but it does mean the reported standard errors and
-p-values are likely too optimistic, exactly the issue the pending OLS/Poisson/NB
-comparison (see `docs/model_family_concepts.md`) exists to address.
+p-values are likely too optimistic. This is exactly what the assumption check and
+autocorrelation check in Model family selection above, still pending, are for:
+confirming whether OLS's provisional edge on AIC survives once autocorrelation is
+accounted for.
 
 ## Visual check: does the dispensing data show the expected level shift?
 

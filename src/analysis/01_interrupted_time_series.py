@@ -18,7 +18,11 @@ import sys
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
 import statsmodels.formula.api as smf
+from statsmodels.stats.stattools import durbin_watson
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 from src.utils.data_io import EPIC_NSW_START_DATE, PBS_LISTING_DATE, load_pbs_dispensing  # noqa: E402
@@ -44,6 +48,49 @@ def fit_segmented_regression(national):
     ).fit()
     national["fitted"] = model.fittedvalues
     return model, national
+
+
+FORMULA = "prep_dispensing_count ~ t + post_listing + months_since_post_listing"
+
+
+def fit_candidate_families(national):
+    """Fit OLS, Poisson, and Negative Binomial on the same specification, and
+    compute the Empirical comparison checklist items from
+    docs/model_family_concepts.md Section 6 for each candidate: coefficient,
+    AIC, the family-specific assumption check, and residual autocorrelation.
+    """
+    ols_model = smf.ols(FORMULA, data=national).fit()
+    poisson_model = smf.glm(FORMULA, data=national, family=sm.families.Poisson()).fit()
+    nb_model = smf.negativebinomial(FORMULA, data=national).fit(disp=False)
+
+    poisson_dispersion = poisson_model.pearson_chi2 / poisson_model.df_resid
+    nb_alpha = nb_model.params["alpha"]
+    nb_alpha_ci = nb_model.conf_int().loc["alpha"]
+
+    rows = [
+        {
+            "Candidate": "OLS",
+            "Coefficient (post_listing)": f"{ols_model.params['post_listing']:+.1f} (additive)",
+            "AIC": ols_model.aic,
+            "Assumption check": f"Durbin-Watson = {durbin_watson(ols_model.resid):.3f}",
+            "Autocorrelation check": f"Durbin-Watson = {durbin_watson(ols_model.resid):.3f}",
+        },
+        {
+            "Candidate": "Poisson",
+            "Coefficient (post_listing)": f"x{np.exp(poisson_model.params['post_listing']):.2f} (multiplicative)",
+            "AIC": poisson_model.aic,
+            "Assumption check": f"Pearson chi-squared / df = {poisson_dispersion:.2f}",
+            "Autocorrelation check": f"Durbin-Watson = {durbin_watson(poisson_model.resid_response):.3f}",
+        },
+        {
+            "Candidate": "NB",
+            "Coefficient (post_listing)": f"x{np.exp(nb_model.params['post_listing']):.2f} (multiplicative)",
+            "AIC": nb_model.aic,
+            "Assumption check": f"alpha = {nb_alpha:.4f}, 95% CI [{nb_alpha_ci[0]:.4f}, {nb_alpha_ci[1]:.4f}]",
+            "Autocorrelation check": f"Durbin-Watson = {durbin_watson(nb_model.resid):.3f}",
+        },
+    ]
+    return ols_model, poisson_model, nb_model, pd.DataFrame(rows)
 
 
 def plot_full_series(df, national):
@@ -187,6 +234,10 @@ def main():
 
     model, national_fit = fit_segmented_regression(national)
     print(model.summary())
+
+    ols_model, poisson_model, nb_model, comparison = fit_candidate_families(national_fit)
+    print("\nEmpirical comparison checklist (docs/model_family_concepts.md Section 6):")
+    print(comparison.to_string(index=False))
 
     full_path = plot_full_series(df, national)
     zoom_path = plot_nsw_pretrend(df)
