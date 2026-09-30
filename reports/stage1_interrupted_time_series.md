@@ -105,37 +105,43 @@ fitted values themselves.
 The Decision checklist in `docs/model_family_concepts.md` identifies Poisson and NB
 as the plausible candidates for a non-negative count outcome; OLS is included
 alongside them as a baseline, not because the checklist selects it. Choosing among
-the three requires the Empirical comparison checklist (`docs/model_family_concepts.md`,
-Section 6): fit all three on the same specification and work through its four items
-in turn. The first two are below; the assumption check and the autocorrelation check
-are the next step.
+the three requires the Empirical comparison checklist (Section 6): fit all three
+on the same specification and work through its four items in turn, filled in
+below as each is completed.
 
-**Table 2.** Empirical comparison checklist, items 1-2, for all three candidates
-fitted on the specification in Model specification above.
+**Table 2.** Empirical comparison checklist results (Section 6), for all three
+candidates fitted on the specification in Model specification above.
 
 | Candidate | Coefficients (β2) | AIC | Assumption check | Autocorrelation check |
 |---|---|---|---|---|
-| OLS | +2,877.9 (additive) | 1,375.0 | *Pending* | *Pending* |
+| OLS | +2,877.9 (additive) | 1,375.0 | Breusch-Pagan LM = 37.29, p < 0.001 | *Pending* |
 | Poisson | ×3.57 (multiplicative) | 17,602.3 | *Pending* | *Pending* |
 | NB | ×2.13 (multiplicative) | 1,387.2 | *Pending* | *Pending* |
 
-**1. Coefficients and their interpretation.** β2, the coefficient compared across
-all three candidates, captures the before/after discontinuity the identification
-strategy is built on; β0, β1, and β3 describe the surrounding trend, not the
-discontinuity itself. The values in Table 2 above aren't directly comparable, since OLS's β2 is
-additive and Poisson's and NB's are multiplicative; this item describes each
-candidate's own effect, not a ranking.
+**1. Coefficients and their interpretation.** Not a ranking: the values in
+Table 2 aren't directly comparable, since OLS's β2 is additive and Poisson's
+and NB's are multiplicative.
 
-**2. AIC.** Ranked from best (lowest) to worst:
+**2. AIC.** AIC for each candidate, lower is better:
 
-1. **OLS**: 1,375.0
-2. **NB**: 1,387.2 (12.2 points higher than OLS)
-3. **Poisson**: 17,602.3 (16,227.3 points higher than OLS, decisively ruled out)
+1. **OLS**: 1,375.0, rank 1.
+2. **Poisson**: 17,602.3, rank 3 (16,227.3 points higher than OLS, decisively
+   ruled out).
+3. **NB**: 1,387.2, rank 2 (12.2 points higher than OLS).
 
-The OLS-NB gap exceeds the ~2-point threshold usually considered meaningful, so AIC
-currently favours OLS. This is the one item of the four that directly ranks the
-candidates, so it is a real point in OLS's favour, though not yet the full picture:
-the assumption check and the autocorrelation check are still pending.
+The OLS-NB gap exceeds the ~2-point threshold usually considered meaningful, so
+this item ranks OLS ahead of NB, with Poisson decisively ruled out.
+
+**3. An assumption check specific to each candidate.** A pass/fail check per
+candidate, not a ranking:
+
+1. **OLS**: fails (Breusch-Pagan LM = 37.29, p < 0.001).
+2. **Poisson and NB**: *pending*.
+
+OLS's residual variance depends on `t`, `post_listing`, and
+`months_since_post_listing` rather than staying constant (Breusch-Pagan
+p < 0.001, well below the conventional 0.05 threshold), contradicting its
+own assumption.
 
 ## Model fitting
 
