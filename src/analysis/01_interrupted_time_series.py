@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
+from statsmodels.stats.diagnostic import het_breuschpagan
 from statsmodels.stats.stattools import durbin_watson
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
@@ -66,13 +67,14 @@ def fit_candidate_families(national):
     poisson_dispersion = poisson_model.pearson_chi2 / poisson_model.df_resid
     nb_alpha = nb_model.params["alpha"]
     nb_alpha_ci = nb_model.conf_int().loc["alpha"]
+    bp_stat, bp_pvalue, _, _ = het_breuschpagan(ols_model.resid, ols_model.model.exog)
 
     rows = [
         {
             "Candidate": "OLS",
             "Coefficient (post_listing)": f"{ols_model.params['post_listing']:+.1f} (additive)",
             "AIC": ols_model.aic,
-            "Assumption check": f"Durbin-Watson = {durbin_watson(ols_model.resid):.3f}",
+            "Assumption check": f"Breusch-Pagan LM = {bp_stat:.2f}, p = {bp_pvalue:.3f}",
             "Autocorrelation check": f"Durbin-Watson = {durbin_watson(ols_model.resid):.3f}",
         },
         {
