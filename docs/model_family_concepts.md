@@ -35,13 +35,14 @@ the data, e.g. `t`, `Post[t]`) stays the same regardless of which family
 is ultimately chosen. As a worked example, here's how three common choices
 compare:
 
-| | OLS | Poisson | NB |
+**Table 1.** The three-ingredient GLM structure, side by side for OLS,
+Poisson, and NB.
+
+| Ingredient | OLS | Poisson | NB |
 |---|---|---|---|
 | Linear predictor | `η[t] = β0 + β1 * t + β2 * Post[t] + β3 * (t * Post[t])` | same | same |
-| Link function | Identity: `μ[t] = η[t]` | Log: `μ[t] = exp(η[t])` | Log: `μ[t] = exp(η[t])` |
-| Distribution | Gaussian around `μ[t]` | Poisson around `μ[t]` | NB around `μ[t]` |
-| Mean–variance relationship | Variance constant, unrelated to `μ[t]` | `Var = μ[t]` | `Var = μ[t] + α*μ[t]²` |
-| Can predict negative values? | Yes (a flaw for counts) | No | No |
+| Link function | Identity: `μ[t] = η[t]` (allows negative values, a flaw for counts) | Log: `μ[t] = exp(η[t])` (always positive) | Log: `μ[t] = exp(η[t])` (always positive) |
+| Distribution family | Gaussian around `μ[t]` (Var constant, unrelated to `μ[t]`) | Poisson around `μ[t]` (`Var = μ[t]`) | NB around `μ[t]` (`Var = μ[t] + α*μ[t]²`) |
 
 The same three-row comparison could be built for any other pair or triple,
 e.g. logistic regression uses a *logit* link and a Bernoulli distribution,
@@ -96,6 +97,8 @@ any stage's outcome. Walk down the questions and stop at the first row
 that applies, regardless of whether the eventual comparison ends up being
 OLS vs. Poisson vs. NB or a different family entirely:
 
+**Table 2.** Decision checklist: which family fits which outcome type.
+
 | Question | Candidate family | Why |
 |---|---|---|
 | Continuous, roughly symmetric, and can plausibly go negative? | OLS | Its Gaussian noise assumption fits an outcome that's unbounded and symmetric. |
@@ -136,30 +139,34 @@ before choosing. For each candidate, record:
    assumption does not hold is undermined regardless of how it performs
    on the other items.*
 
-   - **OLS**: independent residuals (Durbin-Watson, see Glossary).
-   - **Poisson and NB**: share one assumption, whether
-     variance exceeds the mean (the dispersion test, see Glossary); treat
+   - **OLS**: the assumption of homoscedasticity, checked via the
+     Breusch-Pagan test (see Glossary): whether residual variance stays
+     constant as the fitted value changes, matching OLS's own
+     constant-variance assumption from Section 1.
+   - **Poisson and NB**: share one distributional assumption, the
+     mean-variance relationship from Section 1: whether variance exceeds
+     the mean, tested via the dispersion test (see Glossary). Treat
      agreement between their two versions of this check as confirmation,
      not two independent pieces of evidence.
 
    For a different shortlist (e.g. logistic or beta regression), the
-   principle is the same even though the specific test isn't: identify
-   which assumptions are genuinely distinct versus which candidates are
-   just testing the same thing from different angles, and don't double-count
-   the latter.
-4. **Residual autocorrelation over time.** One check that applies
-   regardless of which candidate is being compared.
+   principle is the same even though the specific assumption and test
+   aren't: identify which assumptions are genuinely distinct versus which
+   candidates are just testing the same thing from different angles, and
+   don't double-count the latter.
+4. **Residual autocorrelation over time.** The assumption of independence,
+   a separate assumption classical inference relies on for valid standard
+   errors and p-values, regardless of which family is chosen.
 
    *Also a pass/fail check per candidate, not a ranking: if every
    candidate fails it, that is not a tie, it means the issue lies outside
    family choice and needs its own remedy.*
 
-   - **OLS**: reuses the same Durbin-Watson check as its assumption check
-     above.
-   - **Poisson and NB**: picking a count model over OLS fixes "can't predict
-     negative counts" and "variance should scale with the mean," but it
-     does **not** automatically fix correlated errors over time, so this
-     still needs checking separately.
+   - **OLS**: the assumption of independence, checked via Durbin-Watson
+     (see Glossary).
+   - **Poisson and NB**: also checked via Durbin-Watson; neither family's
+     distributional assumption addresses correlated errors over time, so
+     this still needs its own check.
 
    Run this check on every candidate in the shortlist, not just the ones
    where it seems most relevant.
@@ -167,16 +174,13 @@ before choosing. For each candidate, record:
 Recording the four items above for every candidate produces a table like
 this:
 
+**Table 3.** Results table template for the four checklist items.
+
 | Candidate | Coefficients | AIC | Assumption check | Autocorrelation check |
 |---|---|---|---|---|
-| OLS | ... | ... | Durbin-Watson = ... | Durbin-Watson = ... |
-| Poisson | ... | ... | Pearson chi-squared / df = ... | ... |
-| NB | ... | ... | `α` confidence interval = ... | ... |
-
-OLS's "Assumption check" and "Autocorrelation check" columns hold the
-same number: Durbin-Watson tests both. That's expected, not a mistake;
-Poisson and NB's distinctive assumption is separate from their
-autocorrelation check.
+| OLS | ... | ... | Breusch-Pagan = ... | Durbin-Watson = ... |
+| Poisson | ... | ... | Pearson chi-squared / df = ... | Durbin-Watson = ... |
+| NB | ... | ... | `α` confidence interval = ... | Durbin-Watson = ... |
 
 **Only after this table is filled in for every candidate** should a model
 be selected. The selection should cite the specific numbers that decided
@@ -185,19 +189,24 @@ confidence interval excluded zero").
 
 ## 7. Glossary
 
+Sorted alphabetically by term, for lookup.
+
 | Term | Meaning | Other common names |
 |---|---|---|
-| Model class | A broad group of regression models sharing a common structure (e.g. GLM) | Modeling framework |
-| Family | A specific distribution-and-link choice within a model class (e.g. Poisson and NB) | N/A |
-| Model | A family fitted to specific data with specific predictors and estimated coefficients | Fitted model |
-| Outcome | The variable being predicted | Dependent variable, response, target |
+| AIC | A single score for a fitted model's fit-vs-complexity tradeoff; lower is better and it's directly comparable across different distribution families fit on the same outcome | Akaike Information Criterion |
+| Breusch-Pagan | A test of whether residual variance stays constant as the fitted value changes (homoscedasticity); a low p-value indicates it doesn't | N/A |
 | Coefficient / parameter | A fixed value estimated by the model | N/A |
-| Variable | Has a different value at every row/time point | N/A |
+| Dispersion test | A check of whether real data's variance matches what Poisson assumes (`Variance = Mean`) or exceeds it, via Poisson's Pearson chi-squared/df or NB's `α` confidence interval | Overdispersion test |
+| Distribution family | Ingredient 3 of the GLM structure: the assumed shape of random scatter around `μ[t]` (e.g. Gaussian, Poisson, NB) | N/A |
+| Durbin-Watson | A statistic (roughly 0-4) testing whether a model's residuals are independent over time; near 2 means independent, near 0 or 4 means strongly correlated | N/A |
+| Error term (`ε`) | True, unobservable gap from the real process | Disturbance term |
+| Family | A specific distribution-and-link choice within a model class (e.g. Poisson and NB) | N/A |
 | Linear predictor (`η`) | The unconstrained weighted sum of predictors | Systematic component |
 | Link function | Connects the linear predictor to the predicted mean | N/A |
-| Error term (`ε`) | True, unobservable gap from the real process | Disturbance term |
-| Residual | Observed gap from the *fitted* model | Estimated error (`ε̂`) |
+| Mean-variance relationship | The variance implied by a family's distribution family, not an independent choice (e.g. Poisson's `Var = μ[t]` follows directly from assuming `Y[t]` is Poisson-distributed) | N/A |
+| Model | A family fitted to specific data with specific predictors and estimated coefficients | Fitted model |
+| Model class | A broad group of regression models sharing a common structure (e.g. GLM) | Modeling framework |
+| Outcome | The variable being predicted | Dependent variable, response, target |
 | Overdispersion | Variance exceeding what the simpler distribution in a pair allows (e.g. Poisson) | N/A |
-| AIC | A single score for a fitted model's fit-vs-complexity tradeoff; lower is better and it's directly comparable across different distribution families fit on the same outcome | Akaike Information Criterion |
-| Durbin-Watson | A statistic (roughly 0-4) testing whether a model's residuals are independent over time; near 2 means independent, near 0 or 4 means strongly correlated | N/A |
-| Dispersion test | A check of whether real data's variance matches what Poisson assumes (`Variance = Mean`) or exceeds it, via Poisson's Pearson chi-squared/df or NB's `α` confidence interval | Overdispersion test |
+| Residual | Observed gap from the *fitted* model | Estimated error (`ε̂`) |
+| Variable | Has a different value at every row/time point | N/A |
