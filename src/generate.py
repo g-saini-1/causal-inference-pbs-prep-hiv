@@ -27,9 +27,13 @@ can be checked against a known answer:
    (population, MSM population proxy, socioeconomic index, baseline
    testing rate, urbanicity index, lockdown severity 2020 index).
 
-All series include realistic noise (negative binomial / Poisson draws)
-on top of deterministic trend components, so no two runs are identical
-unless you fix the seed (done below).
+All series include Poisson noise (not negative binomial, despite earlier
+wording here) on top of deterministic trend components, so no two runs are
+identical unless the seed is fixed (done below). Each draw's mean is fully
+deterministic, with no extra randomly varying dispersion, so summing across
+states keeps the aggregate Poisson-shaped too; any overdispersion later
+found in a fitted model reflects that model's specification, not this
+generator's noise.
 """
 
 import os
@@ -101,7 +105,7 @@ for state in STATES:
             level *= (1 - dip_frac)
 
         level = max(level, 0)
-        # negative-binomial-ish noise via Poisson with jittered mean (avoid zero mean issues)
+        # Poisson noise around a deterministic mean (floored at 0.5 to avoid a zero-mean edge case)
         noisy = rng_pbs.poisson(max(level, 0.5))
         rows.append({"state": state, "month": m.strftime("%Y-%m-%d"), "prep_dispensing_count": int(noisy)})
 
