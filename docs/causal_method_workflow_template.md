@@ -29,38 +29,35 @@ stage, since they depend on that stage's specific data and model.
 | **3. Understand the data structure** | Inspect grain, types, missingness | Monthly, national aggregate (summed across states from the underlying state × month data); 84 consecutive months (January 2016 to December 2022), no missing months; outcome is a non-negative count |
 | **4. Translate the identification strategy into variables** | Identify the outcome and the variables that encode the comparison (e.g. treatment timing, trend terms) | An outcome variable (monthly dispensing), a treatment-timing indicator (0 before the listing, 1 after) whose coefficient is the level shift, and two trend terms: the pre-existing trend, and the extra slope added after listing. Full definitions and variable names in Model specification, `reports/stage1_interrupted_time_series.md` |
 | **5. Shortlist candidate statistical models** | Match outcome type to plausible regression families, using the Decision checklist in `docs/model_family_concepts.md` | Poisson and NB, per the Decision checklist (a non-negative count); OLS added alongside them as a simple baseline for comparison, not because the checklist selects it |
-| **6. Choose among candidates with evidence** | Fit all shortlisted candidates and compare (see `docs/model_family_concepts.md`'s empirical comparison checklist) | *Pending, not yet run side-by-side; will be written up in a "Model family selection" section of `reports/stage1_interrupted_time_series.md` once run* |
-| **7. Fit the model** | Run it | *Pending final model choice* |
-| **8. Diagnose and validate** | Check assumptions held up | Durbin-Watson = 0.255 found for the OLS fit (strong autocorrelation), not yet checked for other candidates |
-| **9. Interpret and document** | Translate to plain English, record reasoning | *Pending final model choice* |
+| **6. Choose among candidates with evidence** | Fit all shortlisted candidates and compare (see `docs/model_family_concepts.md`'s empirical comparison checklist) | Complete; deferred rather than decided, see Model family selection in `reports/stage1_interrupted_time_series.md` for why |
+| **7. Fit the model** | Run it | *Pending, deferred along with Step 6's decision* |
+| **8. Diagnose and validate** | Check assumptions held up | *Pending, deferred along with Step 6's decision* |
+| **9. Interpret and document** | Translate to plain English, record reasoning | *Pending, deferred along with Step 6's decision* |
 
 ## How to use this in the project
 
 Two jobs, from the same table:
 
 **As a progress tracker.** An Outcome cell marked *Pending*, or filled in
-only partway, means that step isn't finished yet for that stage. Stage 1's
-own table above shows both: step 8 has a partial result (OLS only, not yet
-the other candidates), and steps 6, 7, and 9 are still marked *Pending*, an
-accurate, at-a-glance status, not just a to-do note. When starting Stage 2,
-copy the template into a new file (`stage2_workflow.md`, see "Practically"
-below) and fill cells in as the work happens rather than after the fact.
-This keeps the table honest as a status view rather than reconstructed
-later.
+only partway, means that step isn't finished for that stage yet. A cell can
+also be complete but still point forward, e.g. a step that concludes with a
+decision deferred to a later step rather than a final pick, that's still an
+accurate, at-a-glance status, not just a to-do note. Fill cells in as the
+work happens rather than after the fact, so the table stays an honest
+status view rather than a reconstruction.
 
 **As an index into the detailed docs.** Most Outcome cells are short
 because the full reasoning lives elsewhere: general, reusable reasoning in
 a stage-agnostic reference (e.g. `docs/model_family_concepts.md`), and the
 specific application, fitted results, and interpretation in a per-stage
-report (e.g. `reports/stage1_interrupted_time_series.md`). Once a stage
-has a detailed doc for a given step, link to it from that cell
-instead of re-describing it. The table becomes a map of "what's been
-decided and where the reasoning for it lives," which is more useful once
-the project has several stages' worth of documents than trying to hold
-everything in one place.
+report. Once a stage has a detailed doc for a given step, link to it from
+that cell instead of re-describing it. The table becomes a map of "what's
+been decided and where the reasoning for it lives," more useful once the
+project has several stages' worth of documents than holding everything in
+one place.
 
-Practically, this suggests one file per stage (`stage2_workflow.md`,
-`stage3_workflow.md`, ...), each starting from the template above, sitting
-alongside that stage's detailed docs and linked from them. Stage 1's worked
-example stays inline in this document as the reference illustration of how
-to fill the template out; it doesn't get its own `stage1_workflow.md`.
+Practically, this suggests one file per stage (`stageN_workflow.md`), each
+starting from the template above, sitting alongside that stage's detailed
+docs and linked from them. Stage 1's worked example stays inline in this
+document as the reference illustration of how to fill the template out;
+it doesn't get its own file.

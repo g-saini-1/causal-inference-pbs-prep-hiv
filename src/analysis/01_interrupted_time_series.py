@@ -1,11 +1,14 @@
 """Stage 1: interrupted time series on national PBS PrEP dispensing.
 
 Sanity-check step: fits a segmented (piecewise-linear) regression around the
-1 April 2018 PBS listing date on the national monthly dispensing series, and
-regenerates the four supporting charts in reports/figures/
-(pbs_prep_dispensing_chart.png, pbs_epic_nsw_zoom_chart.png,
-pbs_prep_its_specification_chart.png, and pbs_prep_fitted_model_chart.png)
-before moving to the harder outcome question in 02_diff_in_diff.py.
+1 April 2018 PBS listing date on the national monthly dispensing series,
+fits OLS, Poisson, and NB as candidate families and runs the Empirical
+comparison checklist from docs/model_family_concepts.md Section 6, and
+regenerates the six supporting charts in reports/figures/
+(pbs_prep_its_specification_chart.png, pbs_prep_family_distribution_chart.png,
+pbs_prep_residuals_over_time_chart.png, pbs_prep_residuals_acf_chart.png,
+pbs_prep_dispensing_chart.png, and pbs_epic_nsw_zoom_chart.png) before moving
+to the harder outcome question in 02_diff_in_diff.py.
 
 See docs/scope_and_rationale.md ("Causal question and methodology", Stage 1) for
 the full design rationale, including why this national-level test needs the
@@ -23,6 +26,7 @@ import pandas as pd
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from scipy.stats import nbinom, norm, poisson
+from statsmodels.graphics.tsaplots import plot_acf
 from statsmodels.stats.diagnostic import het_breuschpagan
 from statsmodels.stats.stattools import durbin_watson
 
@@ -149,6 +153,43 @@ def plot_family_distribution_comparison(national, ols_model, poisson_model, nb_m
     return save_figure(fig, "pbs_prep_family_distribution_chart.png")
 
 
+def _candidate_residuals(ols_model, poisson_model, nb_model):
+    return {
+        "OLS": ols_model.resid,
+        "Poisson": poisson_model.resid_response,
+        "NB": nb_model.resid,
+    }
+
+
+def plot_residuals_over_time(national, ols_model, poisson_model, nb_model):
+    residuals = _candidate_residuals(ols_model, poisson_model, nb_model)
+    colors = {"OLS": "#55A868", "Poisson": "#4C72B0", "NB": "#C44E52"}
+
+    fig, axes = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
+    for ax, (name, resid) in zip(axes, residuals.items()):
+        ax.axhline(0, color="grey", linewidth=0.8)
+        ax.plot(national["month"], resid, color=colors[name], marker="o", markersize=3, linewidth=1)
+        ax.set_ylabel(f"{name} residual")
+    axes[-1].set_xlabel("Month")
+    fig.suptitle("Residuals over time: the wave pattern behind the low Durbin-Watson values", fontsize=12)
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    return save_figure(fig, "pbs_prep_residuals_over_time_chart.png")
+
+
+def plot_residuals_acf(ols_model, poisson_model, nb_model):
+    residuals = _candidate_residuals(ols_model, poisson_model, nb_model)
+    colors = {"OLS": "#55A868", "Poisson": "#4C72B0", "NB": "#C44E52"}
+
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4))
+    for ax, (name, resid) in zip(axes, residuals.items()):
+        plot_acf(resid, ax=ax, lags=20, color=colors[name], vlines_kwargs={"colors": colors[name]}, title=name)
+        ax.set_xlabel("Lag (months)")
+    axes[0].set_ylabel("Autocorrelation")
+    fig.suptitle("Autocorrelation function (ACF) of residuals, by candidate", fontsize=12)
+    fig.tight_layout(rect=[0, 0, 1, 0.92])
+    return save_figure(fig, "pbs_prep_residuals_acf_chart.png")
+
+
 def plot_full_series(df, national):
     state_pivot = df.pivot(index="month", columns="state", values="prep_dispensing_count")
 
@@ -193,27 +234,6 @@ def plot_nsw_pretrend(df):
     ax.set_ylabel("Dispensing count per month")
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.25), ncol=6, frameon=False)
     return save_figure(fig, "pbs_epic_nsw_zoom_chart.png")
-
-
-def plot_fitted_model(national):
-    fig, ax = plt.subplots()
-    ax.scatter(national["month"], national["prep_dispensing_count"], color=NATIONAL_COLOR,
-               s=18, alpha=0.5, label="Actual")
-
-    pre = national[national["post_listing"] == 0]
-    post = national[national["post_listing"] == 1]
-    ax.plot(pre["month"], pre["fitted"], color="firebrick", linewidth=2.5, label="Fitted, pre-listing")
-    ax.plot(post["month"], post["fitted"], color="firebrick", linewidth=2.5, linestyle="--",
-            label="Fitted, post-listing")
-
-    ax.axvline(PBS_LISTING_DATE, color="grey", linestyle=":", linewidth=1.5)
-    top = ax.get_ylim()[1]
-    ax.text(PBS_LISTING_DATE, top * 0.92, "  PBS listing (Apr 2018)", color="grey", ha="left", va="top")
-
-    ax.set_title("Segmented regression fit vs. actual dispensing, national PBS PrEP, Jan 2016 - Dec 2022")
-    ax.set_ylabel("Dispensing count per month")
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=3, frameon=False)
-    return save_figure(fig, "pbs_prep_fitted_model_chart.png")
 
 
 def plot_its_specification(national, model):
@@ -298,10 +318,12 @@ def main():
     full_path = plot_full_series(df, national)
     zoom_path = plot_nsw_pretrend(df)
     spec_path = plot_its_specification(national_fit, model)
-    fitted_path = plot_fitted_model(national_fit)
     dist_path = plot_family_distribution_comparison(national_fit, ols_model, poisson_model, nb_model)
+    resid_path = plot_residuals_over_time(national_fit, ols_model, poisson_model, nb_model)
+    acf_path = plot_residuals_acf(ols_model, poisson_model, nb_model)
     print(
-        f"\nFigures written:\n - {full_path}\n - {zoom_path}\n - {spec_path}\n - {fitted_path}\n - {dist_path}"
+        f"\nFigures written:\n - {spec_path}\n - {dist_path}\n - {resid_path}\n - {acf_path}"
+        f"\n - {full_path}\n - {zoom_path}"
     )
 
 

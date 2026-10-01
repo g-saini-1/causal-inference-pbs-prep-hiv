@@ -42,7 +42,8 @@ impossible to construct.
 - Assumes the functional form (here, linear pre- and post-trends) is correct; a
   genuine nonlinear trend can be mistaken for a level shift, or vice versa.
 - A single national break test can misattribute an already-underway regional trend
-  to the national-level event, addressed for this project's own case below.
+  to the national-level event, addressed for this project's own case in
+  `reports/pbs_prep_dispensing_data_exploration.md`.
 
 Because of these limitations, particularly the missing comparison group and the risk
 of misattributing a regional trend, this project's four-stage causal design (see
@@ -54,19 +55,21 @@ downstream reduction in HIV diagnoses.
 ## Model specification
 
 Stage 1 fits a segmented (piecewise-linear) regression, the standard design for an
-interrupted time series:
+interrupted time series. Its linear predictor, shared across every candidate family
+considered in Model family selection below regardless of which one ultimately gets
+selected (see `docs/model_family_concepts.md`, Section 1), is:
 
 ```
-dispensing[t] = β0 + β1 * t + β2 * post_listing[t] + β3 * months_since_post_listing[t] + ε[t]
+η[t] = β0 + β1 * t + β2 * post_listing[t] + β3 * months_since_post_listing[t]
 ```
 
 where:
-- `dispensing[t]`: national PrEP dispensing count in month t.
+- `η[t]`: the linear predictor for month t; how it maps to the actual predicted
+  dispensing count depends on which family's link function is used.
 - `t`: a running month index, 0, 1, 2, ..., 83 (January 2016 = 0).
 - `post_listing[t]`: 1 if month t falls on or after April 2018, 0 otherwise.
 - `months_since_post_listing[t]`: `post_listing[t] * (t - t at the first post-listing month)`,
   so it counts 0, 1, 2, ... after listing and stays at 0 throughout the pre-period.
-- `ε[t]`: the error term
 
 Coefficients:
 
@@ -95,10 +98,19 @@ starts; `β3` is the extra slope added after the listing. The grey dotted line i
 the counterfactual from Table 1, the pre-listing trend extended forward as if
 the listing had not happened; the shaded gap between it and the observed
 post-listing line is the treatment effect, β2 immediately and growing by β3
-every month after. This is the same fitted model shown with its actual data in
-Figure 2 below; the framing here is structural, what each term in the equation
-means geometrically, before the "Regression results" section reports the
-fitted values themselves.
+every month after. This chart uses OLS's fit specifically to draw the
+geometry, but what each term means structurally is the same regardless of
+which family ultimately estimates it.
+
+**Why β2, specifically, is the causal parameter.** The identification strategy
+(interrupted time series) argues that a comparison of dispensing immediately before
+and after the listing supports a causal claim, provided nothing else plausibly
+changed at exactly that date (see the "Threat to identification" for this stage in
+`docs/scope_and_rationale.md`). β2 is the coefficient that captures exactly that
+before/after comparison, regardless of which family estimates it; β0, β1, and β3
+describe the surrounding trend but don't measure the discontinuity itself. This is
+why the empirical comparison in Model family selection below is made on β2
+specifically, not on every coefficient.
 
 ## Model family selection
 
@@ -106,17 +118,16 @@ The Decision checklist in `docs/model_family_concepts.md` identifies Poisson and
 as the plausible candidates for a non-negative count outcome; OLS is included
 alongside them as a baseline, not because the checklist selects it. Choosing among
 the three requires the Empirical comparison checklist (Section 6): fit all three
-on the same specification and work through its four items in turn, filled in
-below as each is completed.
+on the same specification and work through its four items in turn.
 
 **Table 2.** Empirical comparison checklist results (Section 6), for all three
 candidates fitted on the specification in Model specification above.
 
 | Candidate | Coefficients (β2) | AIC | Assumption check | Autocorrelation check |
 |---|---|---|---|---|
-| OLS | +2,877.9 (additive) | 1,375.0 | Breusch-Pagan LM = 37.29, p < 0.001 | *Pending* |
-| Poisson | ×3.57 (multiplicative) | 17,602.3 | Pearson chi-squared / df = 178.92 | *Pending* |
-| NB | ×2.13 (multiplicative) | 1,387.2 | α = 0.1823, 95% CI [0.1228, 0.2419] | *Pending* |
+| OLS | +2,877.9 (additive) | 1,375.0 | Breusch-Pagan LM = 37.29, p < 0.001 | Durbin-Watson = 0.255 |
+| Poisson | ×3.57 (multiplicative) | 17,602.3 | Pearson chi-squared / df = 178.92 | Durbin-Watson = 0.250 |
+| NB | ×2.13 (multiplicative) | 1,387.2 | α = 0.1823, 95% CI [0.1228, 0.2419] | Durbin-Watson = 0.190 |
 
 **1. Coefficients and their interpretation.** The coefficient values aren't directly comparable, since OLS's β2 is additive and Poisson's and NB's are multiplicative.
 
@@ -156,127 +167,44 @@ fixed spread (SD≈848) sits far narrower than NB's own (SD≈1,922), while
 Poisson's (SD≈67) is narrower still, visibly too tight for the real scatter
 in the data.
 
-## Model fitting
+**4. Residual autocorrelation over time.**
 
-*Provisional from here through "Interpreting the coefficients and identifying the
-causal parameter": OLS is used below because it currently leads on AIC in Model
-family selection above, not because a family has been settled on. These sections
-will be revisited once that section's assumption check and autocorrelation check are
-done.*
+1. **OLS**: fail (Durbin-Watson = 0.255).
+2. **Poisson**: fail (Durbin-Watson = 0.250).
+3. **NB**: fail (Durbin-Watson = 0.190).
 
-The coefficients are estimated by ordinary least squares
-(`smf.ols(...).fit()` in
-[`src/analysis/01_interrupted_time_series.py`](../src/analysis/01_interrupted_time_series.py)),
-minimising the sum of squared residuals. Standard errors use the classical
-(nonrobust) formula, and each p-value comes from comparing the coefficient's
-t-statistic against a t-distribution with 80 degrees of freedom (84 months minus 4
-parameters). Note that this assumes independent errors; the regression's own
-Durbin-Watson statistic (0.255) indicates strong positive autocorrelation in monthly
-residuals, so these p-values are likely optimistic and would tighten under
-autocorrelation-robust (HAC) standard errors.
+All three sit far from the 2 that would indicate independent residuals, and
+close to 0, strong positive autocorrelation. Since every candidate fails,
+the issue lies outside family choice: no choice among OLS, Poisson, and NB
+fixes it, it needs its own remedy rather than a different family.
 
-## Regression results
+![Residuals over time: the wave pattern behind the low Durbin-Watson values](figures/pbs_prep_residuals_over_time_chart.png)
 
-**Table 3.** OLS estimates for the four coefficients in the specification above.
+Figure 3 shows why: residuals from all three candidates trace nearly the
+same wave, an undershoot at the April 2018 listing, a swing above zero
+through 2019, a deep dip through the 2020 COVID period, and a partial
+recovery after, not random scatter.
 
-| Term | Coefficient | Std. error | p-value |
-|---|---|---|---|
-| Intercept (β0) | -7.2 | 317.4 | 0.982 |
-| Pre-period trend (β1, per month) | 32.1 | 20.9 | 0.130 |
-| **Level shift at listing (β2)** | **2,877.9** | 402.1 | **< 0.001** |
-| Post-period trend change (β3, per month) | 25.8 | 22.0 | 0.244 |
+![Autocorrelation function (ACF) of residuals, by candidate](figures/pbs_prep_residuals_acf_chart.png)
 
-N = 84 months, R² = 0.897. The level shift at the listing date is large and highly
-significant: national dispensing jumps by around 2,878 a month at April 2018, holding
-the pre-existing trend constant. The pre- and post-period trend terms are not
-significant on their own, consistent with the shift being a genuine step change
-rather than a gradual acceleration.
+Figure 4 breaks that wave down by lag. OLS's residuals, the other two look
+the same, stay positively correlated out to about lag 5-6 (lag 1 = +0.87),
+then swing to significant negative correlation from around lag 8, bottoming
+out near −0.46 around lag 17. Durbin-Watson only reflects lag 1, so it
+can't tell short-lived noise apart from a long, structural pattern, and
+this is the latter: a trough at the April 2018 listing, a peak about 7
+months later (November 2018), and the COVID trough about 20 months after
+that (July 2020) are exactly what the shift to negative correlation at
+longer lags is picking up. That's independent evidence the autocorrelation
+reflects specific omitted structure, not a short-memory noise process any
+family choice could fix.
 
-## Interpreting the coefficients and identifying the causal parameter
-
-![Segmented regression fit vs. actual dispensing, national PBS PrEP, January 2016 to December 2022](figures/pbs_prep_fitted_model_chart.png)
-
-Each coefficient in `dispensing[t] = β0 + β1·t + β2·post_listing[t] +
-β3·months_since_post_listing[t] + ε[t]` answers a different question about the
-series:
-
-- **β0 (intercept, -7.2, not significant)**: the fitted dispensing level at t=0
-  (January 2016). Not meaningful on its own; dispensing was genuinely near zero
-  before the trial and listing began, so a fitted intercept near zero is expected,
-  not a finding.
-- **β1 (pre-period trend, 32.1 dispensings/month, p=0.130)**: how fast national
-  dispensing was already rising before the listing, driven mostly by NSW's early
-  EPIC-NSW access. Not statistically significant on its own, consistent with
-  pre-listing dispensing being small and only slowly rising nationally.
-- **β2 (level shift, 2,877.9 dispensings, p<0.001)**: the immediate jump in
-  dispensing at the April 2018 listing, holding the pre-existing trend constant.
-  **This is the causal parameter of interest.** It is what Stage 1 exists to
-  estimate: does dispensing itself move sharply at the moment PrEP became
-  subsidised? At 2,877.9 and highly significant, the answer is unambiguously yes.
-- **β3 (post-period trend change, 25.8 dispensings/month, p=0.244)**: whether the
-  monthly growth rate itself changed after the listing, on top of the one-time
-  jump. Not significant here, consistent with the level shift being a step change
-  rather than an accelerating trend.
-
-**Why β2, specifically, is the causal parameter.** The identification strategy
-(interrupted time series) argues that a comparison of dispensing immediately before
-and after the listing supports a causal claim, provided nothing else plausibly
-changed at exactly that date (see the "Threat to identification" for this stage in
-`docs/scope_and_rationale.md`). β2 is the coefficient that captures exactly that
-before/after comparison, regardless of which family estimates it; β0, β1, and β3
-describe the surrounding trend but don't measure the discontinuity itself. This is
-also why the empirical comparison in Model family selection above is made on β2
-specifically, not on every coefficient.
-
-**Residual error, ε[t].** ε[t] is what the model does not explain: the gap between
-each month's actual dispensing and the value the fitted equation predicts for that
-month. OLS assumes these residuals are independent from one month to the next.
-Figure 2 makes that assumption's failure visible: actual dispensing swings above
-and below the post-listing fitted line in a smooth wave, not random scatter, the
-initial overshoot in 2019, the COVID-era dip in 2020, and the recovery after. The
-regression's own Durbin-Watson statistic (0.255, far from the 2 that would indicate
-independence) confirms it: residuals are strongly autocorrelated. This does not
-undermine the β2 finding itself, a jump of 2,878 against near-zero baseline
-dispensing is not a subtle result, but it does mean the reported standard errors and
-p-values are likely too optimistic. This is exactly what the assumption check and
-autocorrelation check in Model family selection above, still pending, are for:
-confirming whether OLS's provisional edge on AIC survives once autocorrelation is
-accounted for.
-
-## Visual check: does the dispensing data show the expected level shift?
-
-![PBS PrEP dispensing counts by state and nationally, January 2016 to December 2022](figures/pbs_prep_dispensing_chart.png)
-
-Before trusting the regression, it's worth just looking at the raw dispensing series:
-does the data actually show the large, obvious level shift the project's causal
-argument depends on? It does. National dispensing sits below 750 a month through
-2016-17, then rises roughly eightfold in the first six months after the April 2018
-listing, settling around 5,500-6,000 a month by 2019. Two further patterns are visible
-without any modelling:
-
-- **A clear COVID-19 dip.** National dispensing falls from ~5,900 to ~3,800 a month
-  during 2020, with the slowest recovery in Victoria, consistent with that state's
-  extended lockdowns.
-- **NSW is already elevated before the national listing.** Its line separates from
-  the other states well before April 2018, which is the first visual hint that the
-  "before" period isn't as flat as a simple before/after comparison would assume,
-  addressed below.
-
-## NSW pre-trend and the case for Stage 3
-
-![PBS PrEP dispensing, EPIC-NSW trial to PBS listing, January 2016 to April 2018](figures/pbs_epic_nsw_zoom_chart.png)
-
-Figure 4 zooms into January 2016 to April 2018, on a y-axis scaled to the
-pre-listing range rather than the full national scale (where these numbers would be
-flattened near zero). Two things stand out:
-
-- **NSW's rise is not a fluke of the generator. It is the intended EPIC-NSW signal.**
-  Dispensing climbs steadily from 0 to roughly 670-730 a month over two years,
-  entirely before the national PBS listing, while every other state stays at
-  essentially zero across the same period.
-- **This is exactly why Stage 1's naive interrupted time series needs a caveat, and
-  why Stage 3 exists.** A single national break test at April 2018 would attribute
-  some of NSW's already-established upward trend to the listing itself. Treating NSW
-  as an earlier-treated unit (from 2016) and the rest of the country as later-treated
-  (from 2018), a staggered-adoption design, is the more defensible way to use this
-  same data, and Figure 4 is the clearest single piece of evidence for why.
+**Family selection: deferred.** AIC currently favours OLS, but OLS fails its
+own homoscedasticity assumption; NB passes its own assumption but loses
+decisively on AIC; and all three fail the autocorrelation check identically,
+for the same underlying reason. With the dominant signal across all four
+items pointing at omitted structure in the specification rather than a
+genuine difference between the candidates, selecting a family now would be
+premature. The next step is fixing the specification, a COVID-period term
+and the non-linear post-listing growth are the leading candidates, and
+re-running this checklist before a family is chosen.
