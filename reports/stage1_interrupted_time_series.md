@@ -115,33 +115,46 @@ candidates fitted on the specification in Model specification above.
 | Candidate | Coefficients (β2) | AIC | Assumption check | Autocorrelation check |
 |---|---|---|---|---|
 | OLS | +2,877.9 (additive) | 1,375.0 | Breusch-Pagan LM = 37.29, p < 0.001 | *Pending* |
-| Poisson | ×3.57 (multiplicative) | 17,602.3 | *Pending* | *Pending* |
-| NB | ×2.13 (multiplicative) | 1,387.2 | *Pending* | *Pending* |
+| Poisson | ×3.57 (multiplicative) | 17,602.3 | Pearson chi-squared / df = 178.92 | *Pending* |
+| NB | ×2.13 (multiplicative) | 1,387.2 | α = 0.1823, 95% CI [0.1228, 0.2419] | *Pending* |
 
-**1. Coefficients and their interpretation.** Not a ranking: the values in
-Table 2 aren't directly comparable, since OLS's β2 is additive and Poisson's
-and NB's are multiplicative.
+**1. Coefficients and their interpretation.** The coefficient values aren't directly comparable, since OLS's β2 is additive and Poisson's and NB's are multiplicative.
 
-**2. AIC.** AIC for each candidate, lower is better:
+**2. AIC.**
 
-1. **OLS**: 1,375.0, rank 1.
-2. **Poisson**: 17,602.3, rank 3 (16,227.3 points higher than OLS, decisively
-   ruled out).
-3. **NB**: 1,387.2, rank 2 (12.2 points higher than OLS).
+1. **OLS**: rank 1 (1,375.0).
+2. **Poisson**: rank 3 (17,602.3, 16,227.3 points higher than OLS,
+   decisively ruled out).
+3. **NB**: rank 2 (1,387.2, 12.2 points higher than OLS).
 
 The OLS-NB gap exceeds the ~2-point threshold usually considered meaningful, so
 this item ranks OLS ahead of NB, with Poisson decisively ruled out.
 
-**3. An assumption check specific to each candidate.** A pass/fail check per
-candidate, not a ranking:
+**3. An assumption check specific to each candidate.**
 
-1. **OLS**: fails (Breusch-Pagan LM = 37.29, p < 0.001).
-2. **Poisson and NB**: *pending*.
+1. **OLS**: fail (Breusch-Pagan LM = 37.29, p < 0.001).
+2. **Poisson**: fail (Pearson chi-squared / df = 178.92).
+3. **NB**: pass (α = 0.1823, 95% CI [0.1228, 0.2419]).
 
 OLS's residual variance depends on `t`, `post_listing`, and
 `months_since_post_listing` rather than staying constant (Breusch-Pagan
 p < 0.001, well below the conventional 0.05 threshold), contradicting its
 own assumption.
+
+Poisson's dispersion ratio of 178.92 is far above the 1.0 expected if
+variance genuinely equalled the mean, contradicting its own assumption just
+as decisively.
+
+NB's own assumption, that the extra dispersion its `α` term captures is real
+rather than zero, is confirmed: its 95% confidence interval, [0.1228, 0.2419],
+excludes zero.
+
+![OLS, Poisson, and NB: each family's own fitted shape for the same month](figures/pbs_prep_family_distribution_chart.png)
+
+The three numbers above are what this chart draws out: in June 2019, OLS's
+fixed spread (SD≈848) sits far narrower than NB's own (SD≈1,922), while
+Poisson's (SD≈67) is narrower still, visibly too tight for the real scatter
+in the data.
 
 ## Model fitting
 
