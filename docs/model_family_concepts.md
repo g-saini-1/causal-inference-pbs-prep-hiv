@@ -168,18 +168,20 @@ before choosing. For each candidate, record:
    a separate assumption classical inference relies on for valid standard
    errors and p-values, regardless of which family is chosen.
 
-   *Also a pass/fail check per candidate, not a ranking: if every
+   *A pass/fail check per candidate: if every
    candidate fails it, that is not a tie, it means the issue lies outside
    family choice and needs its own remedy.*
 
-   - **OLS**: the assumption of independence, checked via Durbin-Watson
-     (see Glossary).
-   - **Poisson and NB**: also checked via Durbin-Watson; neither family's
+   - **OLS**: the assumption of independence.
+   - **Poisson and NB**: also assumes independence; neither family's
      distributional assumption addresses correlated errors over time, so
      this still needs its own check.
 
-   Run this check on every candidate in the shortlist, not just the ones
-   where it seems most relevant.
+   This can be checked two ways: Durbin-Watson (see Glossary) gives a
+   single, lag-1-focused number; the autocorrelation function (ACF, see
+   Glossary) shows the same diagnostic broken out by lag, useful for
+   telling short-memory noise apart from a longer, structural pattern that
+   a single Durbin-Watson value can't distinguish.
 
 Recording the four items above for every candidate produces a table like
 this:
@@ -188,9 +190,9 @@ this:
 
 | Candidate | Coefficients | AIC | Assumption check | Autocorrelation check |
 |---|---|---|---|---|
-| OLS | ... | ... | Breusch-Pagan = ... | Durbin-Watson = ... |
+| OLS | ... | ... | Breusch-Pagan LM = ..., p = ... | Durbin-Watson = ... |
 | Poisson | ... | ... | Pearson chi-squared / df = ... | Durbin-Watson = ... |
-| NB | ... | ... | `α` confidence interval = ... | Durbin-Watson = ... |
+| NB | ... | ... | `α` = ..., 95% CI [..., ...] | Durbin-Watson = ... |
 
 **Only after this table is filled in for every candidate** should a model
 be selected. The selection should cite the specific numbers that decided
@@ -204,6 +206,7 @@ Sorted alphabetically by term, for lookup.
 | Term | Meaning | Other common names |
 |---|---|---|
 | AIC | A single score for a fitted model's fit-vs-complexity tradeoff; lower is better and it's directly comparable across different distribution families fit on the same outcome | Akaike Information Criterion |
+| Autocorrelation function (ACF) | Correlation between a residual series and itself at each lag (1 month apart, 2 months apart, ...), showing whether autocorrelation is short-lived or persists over many months | ACF |
 | Breusch-Pagan | A test of whether residual variance stays constant as the fitted value changes (homoscedasticity); a low p-value indicates it doesn't | N/A |
 | Coefficient / parameter | A fixed value estimated by the model | N/A |
 | Dispersion test | A check of whether real data's variance matches what Poisson assumes (`Variance = Mean`) or exceeds it, via Poisson's Pearson chi-squared/df or NB's `α` confidence interval | Overdispersion test |
@@ -215,7 +218,7 @@ Sorted alphabetically by term, for lookup.
 | Link function | Connects the linear predictor to the predicted mean | N/A |
 | Mean-variance relationship | The variance implied by a family's distribution family, not an independent choice (e.g. Poisson's `Var = μ[t]` follows directly from assuming `Y[t]` is Poisson-distributed) | N/A |
 | Model | A family fitted to specific data with specific predictors and estimated coefficients | Fitted model |
-| Model class | A broad group of regression models sharing a common structure (e.g. GLM) | Modeling framework |
+| Model class | A broad group of regression models sharing a common structure (e.g. GLM) | Modelling framework |
 | Outcome | The variable being predicted | Dependent variable, response, target |
 | Overdispersion | Variance exceeding what the simpler distribution in a pair allows (e.g. Poisson) | N/A |
 | Residual | Observed gap from the *fitted* model | Estimated error (`ε̂`) |

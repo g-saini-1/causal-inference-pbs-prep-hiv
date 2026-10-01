@@ -1,20 +1,24 @@
 # Did subsidising HIV prevention medication reduce diagnoses? A causal inference case study using synthetic data
 
-**Methods & tools:** Python, pandas, statsmodels, synthetic data validation. *Implemented:* interrupted time series with OLS (Poisson/Negative Binomial comparison pending). *Planned:* difference-in-differences, staggered-adoption analysis, causal forest heterogeneity analysis (EconML).
+**Methods & tools:** Python, pandas, statsmodels, synthetic data validation. *Implemented:* interrupted time series (OLS, Poisson, Negative Binomial). *Planned:* difference-in-differences, staggered-adoption analysis, causal forest heterogeneity analysis (EconML).
 
 ## Status
 
-Portfolio project in progress: the data and reproducibility foundation are done, Stage 1 is nearly finalized, and Stages 2-4 (the actual causal claim) are still ahead.
+Portfolio project in progress: the data and reproducibility foundation are done, Stage 1 is nearly finalised, and Stages 2-4 (the actual causal claim) are still ahead.
 
 | Status | Stage / activity | Key outcomes | Details |
 |---|---|---|---|
 | Complete | Data generation & QA | Synthetic PBS/HIV data built with a known, built-in ground truth; two QA issues found and fixed | [`reports/data_acquisition.md`](reports/data_acquisition.md) |
-| In progress | Stage 1: Interrupted time series | Confirmed an unambiguous level shift in PrEP dispensing at the April 2018 listing; OLS/Poisson/NB model-family comparison still pending | [`reports/stage1_interrupted_time_series.md`](reports/stage1_interrupted_time_series.md) |
+| In progress | Stage 1: Interrupted time series | Confirmed an unambiguous level shift in PrEP dispensing at the April 2018 listing; ran the full OLS/Poisson/NB comparison and traced its mixed signals to a shared specification gap, now the basis for refining the model | [`reports/stage1_interrupted_time_series.md`](reports/stage1_interrupted_time_series.md) |
 | Not started | Stage 2: Difference-in-differences | Will compare MSM vs. other transmission categories to isolate the policy effect | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) |
 | Not started | Stage 3: Staggered-adoption analysis | Will use NSW's earlier EPIC-NSW trial as a staggered-treatment design | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) |
 | Not started | Stage 4 (optional): Causal forest heterogeneity | Will examine state-level heterogeneity in treatment effects | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) |
 
 ## What this demonstrates
+
+National PrEP dispensing jumps unmistakably at the April 2018 PBS listing, from under 750 a month to roughly 5,500 within six months, with a visible COVID-19 dip and recovery along the way.
+
+![PBS PrEP dispensing counts by state and nationally, January 2016 to December 2022](reports/figures/pbs_prep_dispensing_chart.png)
 
 Beyond fitting models, this project applies the reasoning causal inference requires: choosing an identification strategy and being explicit about what would threaten it, selecting a statistical model family with evidence, and documenting where the real data had genuine gaps and adjusting the design around them. Stage 1's causal design, shown below, ties the regression coefficients directly to the underlying causal concepts: treatment, counterfactual, treatment effect.
 
@@ -45,7 +49,8 @@ Beyond running the causal experiments, this project identified a need for reusab
 | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) | Upfront selection rationale, causal design, and data provenance |
 | [`notebooks/`](notebooks/) | Reproducible, top-to-bottom walkthrough of the whole analysis |
 | [`reports/data_acquisition.md`](reports/data_acquisition.md) | Data acquisition attempts, why synthetic data was used, and QA |
-| [`reports/stage1_interrupted_time_series.md`](reports/stage1_interrupted_time_series.md) | Stage 1 model specification, regression results, and charts |
+| [`reports/pbs_prep_dispensing_data_exploration.md`](reports/pbs_prep_dispensing_data_exploration.md) | Raw dispensing patterns and the NSW pre-trend, shared dataset-level evidence behind Stages 1 and 3 |
+| [`reports/stage1_interrupted_time_series.md`](reports/stage1_interrupted_time_series.md) | Stage 1 model specification, model family selection, and charts |
 | [`src/`](src/) | Synthetic data generator and analysis-stage scripts |
 
 ## Getting started
