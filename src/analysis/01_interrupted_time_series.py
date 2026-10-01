@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
+from scipy.stats import nbinom, norm, poisson
 from statsmodels.stats.diagnostic import het_breuschpagan
 from statsmodels.stats.stattools import durbin_watson
 
@@ -93,6 +94,59 @@ def fit_candidate_families(national):
         },
     ]
     return ols_model, poisson_model, nb_model, pd.DataFrame(rows)
+
+
+def plot_family_distribution_comparison(national, ols_model, poisson_model, nb_model):
+    """Compares OLS/Gaussian, Poisson, and NB's own fitted shape for one
+    pre-listing and one post-listing month, using each model's real fitted
+    mean (OLS's constant residual SD and NB's fitted alpha set the spread).
+    See the Model family selection section of
+    reports/stage1_interrupted_time_series.md for the numbers behind it.
+    """
+    ols_sd = np.sqrt(ols_model.mse_resid)
+    alpha = nb_model.params["alpha"]
+
+    def nb_pmf(k, mu):
+        n = 1 / alpha
+        p = n / (n + mu)
+        return nbinom.pmf(k, n, p)
+
+    pre_row = national.iloc[[0]]
+    post_row = national[national["month"] == pd.Timestamp("2019-06-01")]
+    cases = [
+        (f"Pre-listing ({pre_row['month'].dt.strftime('%b %Y').iloc[0]})", pre_row),
+        (f"Post-listing ({post_row['month'].dt.strftime('%b %Y').iloc[0]})", post_row),
+    ]
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5.5))
+    for ax, (label, row) in zip(axes, cases):
+        ols_mu = ols_model.predict(row).iloc[0]
+        poisson_mu = poisson_model.predict(row).iloc[0]
+        nb_mu = nb_model.predict(row).iloc[0]
+        poisson_sd = np.sqrt(poisson_mu)
+        nb_sd = np.sqrt(nb_mu + alpha * nb_mu**2)
+
+        lo = min(ols_mu - 4 * ols_sd, nb_mu - 4 * nb_sd, 0)
+        hi = max(ols_mu + 4 * ols_sd, nb_mu + 4 * nb_sd)
+        k = np.arange(int(np.floor(lo)), int(np.ceil(hi)) + 1)
+
+        ax.bar(k, poisson.pmf(k, poisson_mu), width=1, alpha=0.5, color="#4C72B0",
+               label=f"Poisson, μ={poisson_mu:.0f} (SD≈{poisson_sd:.0f})")
+        ax.bar(k, nb_pmf(k, nb_mu), width=1, alpha=0.5, color="#C44E52",
+               label=f"NB, μ={nb_mu:.0f} (SD≈{nb_sd:.0f})")
+        xs = np.linspace(lo, hi, 1000)
+        ax.plot(xs, norm.pdf(xs, ols_mu, ols_sd), color="#55A868", linewidth=2,
+                label=f"OLS/Gaussian, μ={ols_mu:.0f} (SD≈{ols_sd:.0f})")
+        ax.fill_between(xs, norm.pdf(xs, ols_mu, ols_sd), color="#55A868", alpha=0.25)
+        ax.axvline(0, color="black", linewidth=0.8, linestyle=":")
+        ax.set_title(label, fontsize=10)
+        ax.set_xlabel("Monthly dispensing count")
+        ax.legend(fontsize=8, loc="upper right")
+    axes[0].set_ylabel("Probability (mass for Poisson/NB, density for OLS)")
+
+    fig.suptitle("OLS, Poisson, and NB: each family's own fitted shape for the same month", fontsize=12)
+    fig.tight_layout(rect=[0, 0, 1, 0.93])
+    return save_figure(fig, "pbs_prep_family_distribution_chart.png")
 
 
 def plot_full_series(df, national):
@@ -245,7 +299,10 @@ def main():
     zoom_path = plot_nsw_pretrend(df)
     spec_path = plot_its_specification(national_fit, model)
     fitted_path = plot_fitted_model(national_fit)
-    print(f"\nFigures written:\n - {full_path}\n - {zoom_path}\n - {spec_path}\n - {fitted_path}")
+    dist_path = plot_family_distribution_comparison(national_fit, ols_model, poisson_model, nb_model)
+    print(
+        f"\nFigures written:\n - {full_path}\n - {zoom_path}\n - {spec_path}\n - {fitted_path}\n - {dist_path}"
+    )
 
 
 if __name__ == "__main__":

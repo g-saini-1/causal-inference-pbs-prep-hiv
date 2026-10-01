@@ -82,6 +82,16 @@ Both use the log link and both are built for counts. The difference is the
 - **NB** adds a dispersion parameter `α`, allowing
   `Variance = Mean + α*Mean²`. When `α = 0`, it collapses back to Poisson.
 
+![General shape by family, as the mean grows (illustrative, not project-specific)](figures/distribution_shapes_general_chart.png)
+
+Poisson and NB both start lopsided at a small mean and become bell-shaped at
+a large one, the same progression, but NB is visibly wider at every stage,
+exactly what its extra `α*Mean²` term adds on top of Poisson's `Mean`. OLS
+is shown alongside for contrast: its shape never changes, only its centre
+moves, since its variance is fixed regardless of the mean. This chart uses
+illustrative means and an illustrative `α`, not this project's fitted
+values.
+
 Real count data is very often **overdispersed** (variance exceeds the mean):
 bursty periods, batch effects, unmodelled real-world events all add scatter
 beyond what pure Poisson randomness allows. Fitting Poisson on overdispersed
