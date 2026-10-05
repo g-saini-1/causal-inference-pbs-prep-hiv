@@ -9,6 +9,7 @@ Portfolio project in progress: the data and reproducibility foundation are done,
 | Status | Stage / activity | Key outcomes | Details |
 |---|---|---|---|
 | Complete | Data generation & QA | Synthetic PBS/HIV data built with a known, built-in ground truth; two QA issues found and fixed | [`reports/data_acquisition.md`](reports/data_acquisition.md) |
+| Complete | Data exploration | Confirmed the expected level shift visually; identified NSW's early EPIC-NSW ramp, motivating Stage 3's design | [`reports/pbs_prep_dispensing_data_exploration.md`](reports/pbs_prep_dispensing_data_exploration.md) |
 | In progress | Stage 1: Interrupted time series | Confirmed an unambiguous level shift in PrEP dispensing at the April 2018 listing; ran the full OLS/Poisson/NB comparison and traced its mixed signals to a shared specification gap, now the basis for refining the model | [`reports/stage1_interrupted_time_series.md`](reports/stage1_interrupted_time_series.md) |
 | Not started | Stage 2: Difference-in-differences | Will compare MSM vs. other transmission categories to isolate the policy effect | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) |
 | Not started | Stage 3: Staggered-adoption analysis | Will use NSW's earlier EPIC-NSW trial as a staggered-treatment design | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) |
@@ -48,9 +49,7 @@ Beyond running the causal experiments, this project identified a need for reusab
 | [`docs/model_family_concepts.md`](docs/model_family_concepts.md) | Framework for choosing a regression family; see [Methodology tooling](#methodology-tooling) |
 | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) | Upfront selection rationale, causal design, and data provenance |
 | [`notebooks/`](notebooks/) | Reproducible, top-to-bottom walkthrough of the whole analysis |
-| [`reports/data_acquisition.md`](reports/data_acquisition.md) | Data acquisition attempts, why synthetic data was used, and QA |
-| [`reports/pbs_prep_dispensing_data_exploration.md`](reports/pbs_prep_dispensing_data_exploration.md) | Raw dispensing patterns and the NSW pre-trend, shared dataset-level evidence behind Stages 1 and 3 |
-| [`reports/stage1_interrupted_time_series.md`](reports/stage1_interrupted_time_series.md) | Stage 1 model specification, model family selection, and charts |
+| [`reports/`](reports/) | Per-stage results and write-ups; see Status above for each stage's current report |
 | [`src/`](src/) | Synthetic data generator and analysis-stage scripts |
 
 ## Getting started
@@ -59,6 +58,7 @@ Beyond running the causal experiments, this project identified a need for reusab
 pip install -r requirements.txt
 python src/generate.py                      # regenerate the synthetic data
 python src/analysis/01_interrupted_time_series.py
+python -m src.utils.distribution_shapes     # regenerate the illustrative distribution-shapes chart
 ```
 
 ## License
