@@ -128,13 +128,128 @@ The estimand here is the steady-state level shift, the gap between the
 counterfactual and the level dispensing settles at once the post-listing
 transition is complete: `β2 + 6 * β4`. `β2` alone still has a reading, the
 level shift measured exactly at the listing date, but it is not the estimand;
-the steady-state level shift is, and it is what the empirical comparison in
-Model family selection is run on.
+the steady-state level shift is. Model family selection below still compares
+`post_listing` alone across candidates, the one term with a consistent
+definition regardless of family's link function; the steady-state level
+shift itself is then read from whichever family that comparison selects.
 
 ## Model family selection
 
 The Decision checklist in `docs/model_family_concepts.md` identifies Poisson and NB
 as the plausible candidates for a non-negative count outcome; OLS is included
-alongside them as a baseline, not because the checklist selects it. Family selection
-on this revised specification is pending; see Model specification above for why the
-initial specification's comparison was inconclusive rather than decided.
+alongside them as a baseline, not because the checklist selects it. Choosing among
+the three requires the Empirical comparison checklist (Section 6): fit all three
+on the same specification and work through its four items in turn.
+
+**Table 2.** Empirical comparison checklist results (Section 6), for all three
+candidates fitted on the specification in Model specification above.
+
+| Candidate | AIC | Assumption check | Autocorrelation check |
+|---|---|---|---|
+| OLS | 1,090.5 | Breusch-Pagan LM = 2.78, p = 0.836 | Durbin-Watson = 1.092 |
+| Poisson | 2,598.4 | Pearson chi-squared / df = 18.76 | Durbin-Watson = 0.994 |
+| NB | 1,085.0 | α = 0.1038, 95% CI [0.0601, 0.1475] | Durbin-Watson = 0.729 |
+
+**1. Coefficients and their interpretation.** Not applicable here: the
+estimand is the steady-state level shift, not any single fitted coefficient,
+see Model specification above.
+
+**2. AIC.**
+
+1. **NB**: rank 1 (1,085.0).
+2. **OLS**: rank 2 (1,090.5, 5.5 points higher than NB).
+3. **Poisson**: rank 3 (2,598.4, 1,513.4 points higher than NB, decisively
+   ruled out).
+
+NB's advantage over OLS exceeds the ~2-point threshold usually considered
+meaningful, so this item ranks NB ahead of OLS, with Poisson decisively
+ruled out.
+
+**3. An assumption check specific to each candidate.**
+
+1. **OLS**: pass (Breusch-Pagan LM = 2.78, p = 0.836).
+2. **Poisson**: fail (Pearson chi-squared / df = 18.76).
+3. **NB**: pass (α = 0.1038, 95% CI [0.0601, 0.1475]).
+
+OLS's residual variance no longer depends detectably on the regressors
+(p = 0.836, well above the conventional 0.05 threshold), unlike the initial
+specification, where this check failed. Poisson's dispersion ratio of 18.76
+is still far above the 1.0 expected if variance equalled the mean, failing
+just as decisively as before. NB's own assumption, that the extra dispersion
+its α term captures is real rather than zero, is confirmed: its 95%
+confidence interval, [0.0601, 0.1475], excludes zero.
+
+![OLS, Poisson, and NB: each family's own fitted shape for the same month](figures/pbs_prep_family_distribution_chart.png)
+
+The same pattern as the initial specification shows up here: OLS's fixed
+spread is narrower than NB's own, with Poisson's narrower still, too tight
+for the real scatter in the data.
+
+**4. Residual autocorrelation over time.**
+
+1. **OLS**: fail (Durbin-Watson = 1.092).
+2. **Poisson**: fail (Durbin-Watson = 0.994).
+3. **NB**: fail (Durbin-Watson = 0.729).
+
+All three sit below 2, so residuals are still positively autocorrelated,
+though far less than the initial specification's 0.19-0.26.
+
+![Residuals over time: the wave pattern behind the low Durbin-Watson values](figures/pbs_prep_residuals_over_time_chart.png)
+
+Figure 4 shows why: residuals are tight and centred on zero for most of the
+series, with one sharp shared spike right at the start of the COVID window
+across all three candidates, the decline segment captures the dip's overall
+shape but not its exact month-by-month onset.
+
+![Autocorrelation function (ACF) of residuals, by candidate](figures/pbs_prep_residuals_acf_chart.png)
+
+Figure 5 shows this is now a short-memory pattern, not the long one found in
+the initial specification: OLS's lag-1 autocorrelation (+0.45) sits outside
+the confidence band, but by lag 3 (−0.24) it is back near the band's edge,
+and nothing further out is reliably outside it. The segmentation itself
+explains the shift: with the ramp, long-run growth, and COVID decline and
+recovery each modelled separately, there is no broad, multi-year shape left
+for the residuals to carry. What is left is a narrow, local miss, the
+decline is fit as two straight lines, but the true dip is a smoothly curved
+one, so its exact onset is still slightly off, consistent with a
+single spike echoing into the next month or two rather than a broad
+omitted-structure problem.
+
+**Family selection: Negative Binomial.** NB wins the primary ranking
+criterion (AIC) and passes its own assumption check; OLS is a close
+second, now passing its own assumption too, unlike in the initial
+specification; Poisson is decisively ruled out on every item. NB also
+matches the Decision checklist's upfront reasoning for a non-negative
+count outcome, so the empirical result and the theoretical starting point
+agree. The residual autocorrelation all three still show is a short-memory
+pattern tied to the exact timing of the COVID decline, not a reason to
+prefer one family over another.
+
+## Conclusion
+
+The estimand, the steady-state level shift, is read from the selected NB
+fit: dispensing settles at roughly **3,934 more a month than the
+counterfactual** once the six-month ramp is complete (95% CI
+[3,293, 4,720], from a parametric bootstrap over NB's fitted coefficients,
+since its log link makes this a difference of two exponentials rather than
+a plain sum).
+
+Stage 1's question, "did dispensing itself change sharply at the moment of
+the PBS listing?", can now be answered directly rather than redefined.
+Taken completely literally, no: the discrete level-shift term measured
+exactly at the listing date is statistically indistinguishable from zero
+(`post_listing` = −10.4, p = 0.928). But interrupted time series doesn't
+need an instant jump to support a causal claim, it needs a change large
+enough, and timed closely enough to the treatment, to rule out coincidence
+(see the "Threat to identification" for this stage in
+`docs/scope_and_rationale.md`). By that standard the answer is
+**affirmative**: a large, highly significant rise begins exactly at the
+listing date and nowhere else across the series (`early_ramp` = 582.4 a
+month, p < 0.001), completing within six months and holding durably
+afterward. "Sharply" turns out to describe a steep six-month ramp rather
+than a one-month step, but the change itself is real, large, and tied
+unambiguously to the listing date.
+
+This answer is scoped to the rest of the country; NSW is excluded
+throughout (see Table 1), since its EPIC-NSW trial access puts it on a
+different, earlier trajectory this stage does not test.

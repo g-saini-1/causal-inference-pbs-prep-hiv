@@ -4,13 +4,13 @@
 
 ## Status
 
-Portfolio project in progress: the data and reproducibility foundation are done, Stage 1 is nearly finalised, and Stages 2-4 (the actual causal claim) are still ahead.
+Portfolio project in progress: the data and reproducibility foundation are done, Stage 1 is complete, and Stages 2-4 (the actual causal claim) are still ahead.
 
 | Status | Stage / activity | Key outcomes | Details |
 |---|---|---|---|
 | Complete | Data generation & QA | Synthetic PBS/HIV data built with a known, built-in ground truth; two QA issues found and fixed | [`reports/data_acquisition.md`](reports/data_acquisition.md) |
 | Complete | Data exploration | Confirmed the expected level shift visually; identified NSW's early EPIC-NSW ramp, motivating Stage 3's design | [`reports/pbs_prep_dispensing_data_exploration.md`](reports/pbs_prep_dispensing_data_exploration.md) |
-| In progress | Stage 1: Interrupted time series | Found the national aggregate's pre-listing trend was dominated by NSW's EPIC-NSW ramp; refitted on the rest-of-country aggregate with a five-segment specification (ramp, long-run growth, COVID decline and recovery), producing a precisely-estimated steady-state level shift rather than an instant jump; family selection on this revised specification still pending | [`reports/stage1_interrupted_time_series.md`](reports/stage1_interrupted_time_series.md) |
+| Complete | Stage 1: Interrupted time series | Found the national aggregate's pre-listing trend was dominated by NSW's EPIC-NSW ramp; refitted on the rest-of-country aggregate with a five-segment specification (ramp, long-run growth, COVID decline and recovery); selected Negative Binomial with evidence and concluded dispensing rose to a precisely-estimated, durably higher level (~3,934 a month) within six months of the listing, not instantly | [`reports/stage1_interrupted_time_series.md`](reports/stage1_interrupted_time_series.md) |
 | Not started | Stage 2: Difference-in-differences | Will compare MSM vs. other transmission categories to isolate the policy effect | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) |
 | Not started | Stage 3: Staggered-adoption analysis | Will use NSW's earlier EPIC-NSW trial as a staggered-treatment design | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) |
 | Not started | Stage 4 (optional): Causal forest heterogeneity | Will examine state-level heterogeneity in treatment effects | [`docs/scope_and_rationale.md`](docs/scope_and_rationale.md) |
@@ -24,6 +24,8 @@ National PrEP dispensing ramps up to a new steady state over the six months foll
 Beyond fitting models, this project applies the reasoning causal inference requires: choosing an identification strategy and being explicit about what would threaten it, selecting a statistical model family with evidence, and documenting where the real data had genuine gaps and adjusting the design around them. Stage 1's causal design, shown below, ties the regression coefficients directly to the underlying causal concepts: treatment, counterfactual, treatment effect.
 
 ![Segmented regression: full model specification](reports/figures/pbs_prep_its_specification_chart.png)
+
+Family selection confirmed Negative Binomial as the best-supported model (evidence: AIC, residual diagnostics), and the resulting estimate is precise: dispensing settles at roughly 3,934 more a month than the counterfactual once the ramp completes. That answers Stage 1's question affirmatively, even though the change unfolds over six months rather than instantly.
 
 See [Methodology tooling](#methodology-tooling) below for the reusable frameworks this produced.
 
@@ -51,6 +53,7 @@ Beyond running the causal experiments, this project identified a need for reusab
 | [`notebooks/`](notebooks/) | Reproducible, top-to-bottom walkthrough of the whole analysis |
 | [`reports/`](reports/) | Per-stage results and write-ups; see Status above for each stage's current report |
 | [`src/`](src/) | Synthetic data generator and analysis-stage scripts |
+| [`tests/`](tests/) | Automated tests for the analysis scripts |
 
 ## Getting started
 
@@ -59,6 +62,7 @@ pip install -r requirements.txt
 python src/generate.py                      # regenerate the synthetic data
 python src/analysis/01_interrupted_time_series.py
 python -m src.utils.distribution_shapes     # regenerate the illustrative distribution-shapes chart
+python -m pytest tests/                     # run the test suite
 ```
 
 ## License
