@@ -22,17 +22,19 @@ stage, since they depend on that stage's specific data and model.
 
 ## Worked example: Stage 1 (interrupted time series)
 
+Full write-up: `reports/stage1_interrupted_time_series.md`.
+
 | Step | What happens | Outcome |
 |---|---|---|
-| **1. Frame the question** | Plain-language, falsifiable question | "Did dispensing itself change sharply at the moment of the PBS listing?" Refined by the specification work: not at the instant of listing, but over a short ramp afterward, see `reports/stage1_interrupted_time_series.md` |
+| **1. Frame the question** | Plain-language, falsifiable question | "Did dispensing itself change sharply at the moment of the PBS listing?" Refined once the specification work was done: not at the instant of listing, but over a short ramp afterward |
 | **2. Choose the identification strategy** | The argument for why a comparison supports a causal claim | Interrupted time series on dispensing |
-| **3. Understand the data structure** | Inspect grain, types, missingness | Monthly, rest-of-country aggregate (NSW excluded, summed across the remaining states from the underlying state × month data); 84 consecutive months (January 2016 to December 2022), no missing months; outcome is a non-negative count. Revised from an initial national aggregate once diagnostics showed NSW's EPIC-NSW trial ramp dominates the pre-listing period, see `reports/pbs_prep_dispensing_data_exploration.md` |
-| **4. Translate the identification strategy into variables** | Identify the outcome and the variables that encode the comparison (e.g. treatment timing, trend terms) | An outcome variable (monthly dispensing), a treatment-timing indicator (0 before the listing, 1 after), and five segments modelled as distinct terms: the pre-listing trend, an early post-listing ramp, the long-run growth it settles into, and a COVID decline and recovery. Full definitions and variable names in Model specification, `reports/stage1_interrupted_time_series.md` |
+| **3. Understand the data structure** | Inspect grain, types, missingness | Monthly, rest-of-country aggregate (NSW excluded); 84 consecutive months, no missing data; non-negative count outcome. NSW excluded once diagnostics showed its EPIC-NSW ramp dominates the pre-listing period, see `reports/pbs_prep_dispensing_data_exploration.md` |
+| **4. Translate the identification strategy into variables** | Identify the outcome and the variables that encode the comparison (e.g. treatment timing, trend terms) | An outcome variable, a treatment-timing indicator, and five segment-specific trend terms |
 | **5. Shortlist candidate statistical models** | Match outcome type to plausible regression families, using the Decision checklist in `docs/model_family_concepts.md` | Poisson and NB, per the Decision checklist (a non-negative count); OLS added alongside them as a simple baseline for comparison, not because the checklist selects it |
-| **6. Choose among candidates with evidence** | Fit all shortlisted candidates and compare (see `docs/model_family_concepts.md`'s empirical comparison checklist) | Complete on the initial specification; deferred rather than decided, see `reports/stage1_initial_specification_diagnostics.md` for the full diagnostic trail. Being revisited on a revised specification |
-| **7. Fit the model** | Run it | *Pending, deferred along with Step 6's decision* |
-| **8. Diagnose and validate** | Check assumptions held up | *Pending, deferred along with Step 6's decision* |
-| **9. Interpret and document** | Translate to plain English, record reasoning | *Pending, deferred along with Step 6's decision* |
+| **6. Choose among candidates with evidence** | Fit all shortlisted candidates and compare (see `docs/model_family_concepts.md`'s empirical comparison checklist) | Negative Binomial: wins on AIC, passes its own assumption check; OLS a close second, now also passing its own assumption; Poisson ruled out on every item |
+| **7. Fit the model** | Run it | Complete: NB is the model fit as part of Step 6's comparison |
+| **8. Diagnose and validate** | Check assumptions held up | Complete as part of Step 6: NB's own assumption holds; residual autocorrelation is reduced to a short-memory pattern tied to COVID's exact timing, an accepted limitation rather than a specification flaw |
+| **9. Interpret and document** | Translate to plain English, record reasoning | Complete, see the full write-up above |
 
 ## How to use this in the project
 
