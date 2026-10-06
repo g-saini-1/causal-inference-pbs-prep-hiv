@@ -20,9 +20,12 @@ python src/analysis/01_interrupted_time_series.py        # Stage 1, implemented
 python src/analysis/02_diff_in_diff.py                    # Stage 2, currently a TODO stub
 python src/analysis/03_staggered_adoption.py              # Stage 3, currently a TODO stub
 python src/analysis/04_heterogeneity_causal_forest.py     # Stage 4 (optional), currently a TODO stub
+python -m pytest tests/                                   # run the test suite
 ```
 
-There is no test suite or linter configured in this repo.
+There is no linter configured in this repo. `tests/` currently covers Stage 1's
+data-construction logic (rest-of-country aggregation, the ramp and COVID segment
+terms); Stages 2-4 have no tests yet since they're still TODO stubs.
 
 ## Architecture
 
