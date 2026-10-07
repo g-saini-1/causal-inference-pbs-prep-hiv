@@ -15,3 +15,6 @@ Thumbs.db
 # Editors
 .vscode/
 .idea/
+
+# Raw third-party data: kept locally for reference, not redistributed.
+data/raw/*
