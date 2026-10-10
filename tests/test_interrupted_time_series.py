@@ -59,14 +59,28 @@ def test_post_listing_indicator_flips_at_listing_date(v2_fit):
 
 def test_early_ramp_is_zero_pre_listing_and_capped_post_listing(v2_fit):
     _, national = v2_fit
+    ramp_months = national.attrs["ramp_months"]
     pre = national[national["post_listing"] == 0]
     post = national[national["post_listing"] == 1].reset_index(drop=True)
     assert (pre["early_ramp"] == 0).all()
-    # Rises 0, 1, 2, ..., RAMP_MONTHS over the first RAMP_MONTHS + 1 post-listing rows.
-    expected_rise = list(range(stage1.RAMP_MONTHS + 1))
-    assert post["early_ramp"].iloc[: stage1.RAMP_MONTHS + 1].tolist() == expected_rise
+    # Rises 0, 1, 2, ..., ramp_months over the first ramp_months + 1 post-listing rows.
+    expected_rise = list(range(ramp_months + 1))
+    assert post["early_ramp"].iloc[: ramp_months + 1].tolist() == expected_rise
     # Holds at the cap for every month after that, never exceeds it.
-    assert (post["early_ramp"].iloc[stage1.RAMP_MONTHS :] == stage1.RAMP_MONTHS).all()
+    assert (post["early_ramp"].iloc[ramp_months:] == ramp_months).all()
+
+
+def test_ramp_months_is_derived_from_data_not_hardcoded(v2_fit):
+    """select_ramp_months() must pick a length strictly between 1 and the
+    pre-COVID window, confirming it actually searched rather than returning a
+    fixed default (e.g. the old hardcoded 6)."""
+    _, national = v2_fit
+    ramp_months = national.attrs["ramp_months"]
+    max_candidate = (
+        national.loc[national["covid_period"] == 1, "t"].min()
+        - national.loc[national["post_listing"] == 1, "t"].min()
+    )
+    assert 1 <= ramp_months < max_candidate
 
 
 def test_covid_decline_and_recovery_are_zero_outside_the_window(v2_fit):

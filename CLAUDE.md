@@ -25,7 +25,9 @@ python -m pytest tests/                                   # run the test suite
 
 There is no linter configured in this repo. `tests/` currently covers Stage 1's
 data-construction logic (rest-of-country aggregation, the ramp and COVID segment
-terms); Stages 2-4 have no tests yet since they're still TODO stubs.
+terms) and `src/generate.py`'s PBS dispensing series (the three generation rules
+and their ground-truth checks); HIV notifications generation and Stages 2-4 have
+no tests yet, the former pending, the latter still TODO stubs.
 
 ## Architecture
 
@@ -41,8 +43,10 @@ stubs whose intended model spec is written in their module docstrings.
 2018-04 PBS listing, an earlier NSW-only ramp for the 2016 EPIC-NSW trial, a COVID-era dip),
 documented column-by-column in `data/data_dictionary.md`. Because the ground truth is known, each
 stage's fitted result can be checked against it rather than trusted blind. `data/raw/` holds the
-real PBS/NNDSS/Kirby extracts from the abandoned real-data attempt, documented in
-`data/raw/data-collection-notes.md`.
+real PBS/NNDSS/Kirby extracts from the abandoned real-data attempt, kept locally for reference
+only and excluded from git (see `.gitignore`); what it contains and how the synthetic data compares
+against it is documented in `reports/data_acquisition.md` and `reports/synthetic_data_validation.md`,
+which are tracked.
 
 **`docs/` vs `reports/`.** `docs/` holds stage-agnostic reference material reused across stages:
 `scope_and_rationale.md` (causal design), `causal_method_workflow_template.md` (the per-stage
@@ -54,6 +58,16 @@ the dated, stage-specific write-ups of actual results (`data_acquisition.md`,
 `sys.path` (there's no installed package) and pulls data loaders from `src/utils/data_io.py` and
 chart styling/save helpers from `src/utils/plotting.py`, so state colors and figure output paths
 stay consistent across stages.
+
+## Never reference gitignored files or folders
+
+If a file or folder is excluded from git by `.gitignore` (e.g. `data/raw/`), never
+reference its path in committed code or documentation, tracked files should be
+fully meaningful to someone who only has what git actually ships. Facts, figures,
+or analysis derived from such a file are fine to write up, cite the real-world
+source instead (a publication, an institution, a public URL), not the local path.
+If no such real-world citation is possible, say so explicitly rather than pointing
+at a path the reader won't have.
 
 ## `docs/scope_and_rationale.md` is frozen
 
