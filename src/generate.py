@@ -6,10 +6,13 @@ project scope, with known ground-truth effects baked in so model output
 can be checked against a known answer:
 
 1. pbs_dispensing_monthly.csv
-   State x month PBS PrEP dispensing counts, Jan 2016 - Dec 2022.
-   - NSW gets an early ramp-up from 2016 (EPIC-NSW demonstration trial).
-   - All states get a large level shift at 2018-04 (PBS listing).
-   - A COVID dip appears 2020, worst and longest in VIC.
+   State x month PBS PrEP dispensing counts, Jan 2016 - Dec 2022. Not a
+   fitted formula: real PBS Item Report data from Apr 2018 onward (all
+   states), a documented construction from EPIC-NSW's published enrolment
+   milestones for NSW's Mar 2016 - Mar 2018 trial period, and 0 everywhere
+   else pre-listing (these PBS item codes did not exist yet). See
+   reports/synthetic_data_validation.md's "Generation rules" (PBS
+   dispensing) for the full reasoning.
 
 2. hiv_notifications_quarterly.csv
    State x quarter x transmission-category HIV notification counts,
@@ -27,13 +30,12 @@ can be checked against a known answer:
    (population, MSM population proxy, socioeconomic index, baseline
    testing rate, urbanicity index, lockdown severity 2020 index).
 
-All series include Poisson noise (not negative binomial, despite earlier
-wording here) on top of deterministic trend components, so no two runs are
-identical unless the seed is fixed (done below). Each draw's mean is fully
-deterministic, with no extra randomly varying dispersion, so summing across
-states keeps the aggregate Poisson-shaped too; any overdispersion later
-found in a fitted model reflects that model's specification, not this
-generator's noise.
+The HIV notifications and state covariates series include Poisson noise (not
+negative binomial, despite earlier wording here) on top of deterministic
+trend components, so no two runs of those two series are identical unless
+the seed is fixed (done below). PBS dispensing is fully deterministic (real
+data or a documented construction, see above), so it is identical on every
+run regardless of seed.
 """
 
 import os
@@ -57,57 +59,50 @@ STATE_WEIGHTS = {"NSW": 0.32, "VIC": 0.26, "QLD": 0.20, "WA": 0.11, "SA": 0.07, 
 
 # =============================================================
 # 1. PBS DISPENSING (monthly, state x month), Jan 2016 - Dec 2022
+#
+# Built from real data and a referenced construction, not a fitted formula;
+# see reports/synthetic_data_validation.md's "Generation rules" (PBS
+# dispensing) for the full reasoning behind each of the three rules below.
 # =============================================================
 months = pd.date_range("2016-01-01", "2022-12-01", freq="MS")
 PBS_LISTING = pd.Timestamp("2018-04-01")
 EPIC_NSW_START = pd.Timestamp("2016-03-01")
 
+REAL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "reference")
+real_pbs = pd.read_csv(os.path.join(REAL_DIR, "pbs_dispensing_real_monthly.csv"), parse_dates=["month"])
+real_pbs = real_pbs.set_index("month")
+
+# EPIC-NSW enrolment-tracking construction (rule 2): monthly dispensing
+# assumed to track cumulative enrolment, two segments anchored to the
+# trial's own published milestones (Grulich et al. 2021, Lancet HIV):
+# ~462 new participants/month to 3,700 by Oct 2016, then ~334/month
+# onward. Not fitted; a direct, documented approximation.
+EPIC_NSW_RATE_1 = 3700 / 8   # Mar-Oct 2016 (8 months) to reach 3,700
+EPIC_NSW_RATE_2 = (9709 - 3700) / 18  # Nov 2016-Apr 2018 (18 months) to reach 9,709
+
+
+def epic_nsw_cumulative_enrolment(m):
+    months_since_epic = (m.year - EPIC_NSW_START.year) * 12 + (m.month - EPIC_NSW_START.month)
+    if months_since_epic < 8:
+        return EPIC_NSW_RATE_1 * (months_since_epic + 1)
+    return 3700 + EPIC_NSW_RATE_2 * (months_since_epic - 7)
+
+
 rows = []
 for state in STATES:
-    w = STATE_WEIGHTS[state]
-    base_national_scale = 5200  # approx national steady-state monthly dispensing count, post-ramp
-
     for m in months:
-        months_since_listing = (m.year - PBS_LISTING.year) * 12 + (m.month - PBS_LISTING.month)
-        months_since_epic = (m.year - EPIC_NSW_START.year) * 12 + (m.month - EPIC_NSW_START.month)
-
-        # NSW-only early EPIC-NSW trial dispensing (small, trial-scale).
-        # NOTE: this is *not* gated to "before listing" any more. EPIC-NSW
-        # participants kept taking PrEP after the PBS listing too -- they
-        # didn't stop the month the funding mechanism changed -- so this
-        # term is treated as an ongoing floor, not a pre/post switch.
-        epic_level = 0.0
-        if state == "NSW" and months_since_epic >= 0:
-            epic_level = min(700, 40 * months_since_epic)
-
-        # National level shift + gradual growth after PBS listing
-        post_level = 0.0
         if m >= PBS_LISTING:
-            ramp = min(1.0, months_since_listing / 6)  # 6-month ramp to new steady state
-            growth = 1 + 0.006 * months_since_listing  # slow ongoing growth
-            post_level = base_national_scale * w * ramp * growth
-
-        # Use max(), not sum: the EPIC-NSW trial cohort and the post-listing
-        # PBS cohort overlap (same people, different funding mechanism), so
-        # adding them would double-count. max() also removes the artificial
-        # one-month drop to ~0 right at the listing month, since the trial
-        # floor (~700/month by 2018) carries NSW through the transition
-        # until the post-listing ramp naturally grows past it.
-        level = max(epic_level, post_level)
-
-        # COVID dip: strongest & longest in VIC (extended lockdowns), mild elsewhere
-        if date(2020, 3, 1) <= m.date() <= date(2021, 10, 1):
-            covid_month_idx = (m.year - 2020) * 12 + (m.month - 3)
-            if state == "VIC":
-                dip_frac = 0.55 * np.exp(-((covid_month_idx - 6) ** 2) / (2 * 6.5 ** 2))
-            else:
-                dip_frac = 0.30 * np.exp(-((covid_month_idx - 4) ** 2) / (2 * 4.0 ** 2))
-            level *= (1 - dip_frac)
-
-        level = max(level, 0)
-        # Poisson noise around a deterministic mean (floored at 0.5 to avoid a zero-mean edge case)
-        noisy = rng_pbs.poisson(max(level, 0.5))
-        rows.append({"state": state, "month": m.strftime("%Y-%m-%d"), "prep_dispensing_count": int(noisy)})
+            # Rule 3: real PBS Item Report data, all states, from the listing onward.
+            count = int(real_pbs.loc[m, state])
+        elif state == "NSW" and m >= EPIC_NSW_START:
+            # Rule 2: NSW's EPIC-NSW trial period, constructed from real enrolment milestones.
+            count = round(epic_nsw_cumulative_enrolment(m))
+        else:
+            # Rule 1: no PBS-subsidised PrEP existed yet (rest of country), or
+            # EPIC-NSW hadn't started yet (NSW, before March 2016). A real value,
+            # not an assumption: these item codes simply didn't exist.
+            count = 0
+        rows.append({"state": state, "month": m.strftime("%Y-%m-%d"), "prep_dispensing_count": count})
 
 pbs = pd.DataFrame(rows)
 pbs.to_csv(os.path.join(OUT_DIR, "pbs_dispensing_monthly.csv"), index=False)

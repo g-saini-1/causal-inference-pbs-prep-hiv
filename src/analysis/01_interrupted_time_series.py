@@ -64,31 +64,47 @@ FORMULA = "prep_dispensing_count ~ t + post_listing + months_since_post_listing"
 # Stage 1 v2: the initial specification's own diagnostics (see
 # reports/stage1_initial_specification_diagnostics.md) identified two omitted-structure
 # gaps and a confound, addressed here: an early ramp term and a COVID dip-and-recovery
-# term (both checked against src/generate.py's actual functional forms, not just the
-# chart), and switching from the full national aggregate to a rest-of-country
+# term, and switching from the full national aggregate to a rest-of-country
 # aggregate (NSW excluded, since its EPIC-NSW ramp otherwise dominates the pre-trend).
 #
-# The data-generating process (src/generate.py) ramps post-listing growth linearly
-# over 6 months to a steady state, then grows linearly (not curved) indefinitely; a
-# single quadratic term across the whole post-period can't represent two distinct
-# straight-line slopes, and was found to force a spurious late decline. `early_ramp`
-# is a linear spline (capped at RAMP_MONTHS) that gives the first 6 months their own,
-# much steeper slope, matching that generator exactly.
+# `early_ramp` is a linear spline that gives the months right after listing their own,
+# steeper slope, separate from the shallower long-run growth afterward; a single
+# quadratic term across the whole post-period can't represent two distinct
+# straight-line slopes, and was found to force a spurious late decline. Its length is
+# not assumed: select_ramp_months() grid-searches candidate lengths against AIC, the
+# same "find it in the data, don't assume it" principle already used for the COVID
+# trough below, rather than a fixed number of months.
 #
-# The generator's COVID effect is a bell-shaped multiplicative dip, but its peak sits
-# well before the window's midpoint (the rest-of-country trough lands around three
-# months in, not ten); a single term symmetric about the window's centre put the
-# modelled trough roughly six months later than the data actually shows. `covid_decline`
-# and `covid_recovery` are a hinge pair, the same construction as `early_ramp`, split at
-# the observed trough, so the sharp decline and the much longer recovery each get their
-# own slope instead of being forced into one symmetric shape.
+# The COVID effect is likewise not assumed to be symmetric: `covid_decline` and
+# `covid_recovery` are a hinge pair, split at the observed trough (data-derived, not
+# assumed), so the decline and the much longer recovery each get their own slope
+# instead of being forced into one symmetric shape.
 COVID_START = pd.Timestamp("2020-03-01")
 COVID_END = pd.Timestamp("2021-10-01")
-RAMP_MONTHS = 6
 FORMULA_V2 = (
     "prep_dispensing_count ~ t + post_listing + months_since_post_listing "
     "+ early_ramp + covid_decline + covid_recovery"
 )
+
+
+def select_ramp_months(national):
+    """Grid-searches candidate ramp lengths, 1 month up to the last month before
+    COVID starts, and returns whichever minimises AIC. `national` must already have
+    t, post_listing, months_since_post_listing, covid_period, covid_decline, and
+    covid_recovery columns (see fit_v2_specification).
+    """
+    max_candidate = (
+        national.loc[national["covid_period"] == 1, "t"].min()
+        - national.loc[national["post_listing"] == 1, "t"].min()
+    )
+    best_ramp, best_aic = None, np.inf
+    for candidate in range(1, int(max_candidate)):
+        trial = national.copy()
+        trial["early_ramp"] = trial["months_since_post_listing"].clip(upper=candidate)
+        aic = smf.ols(FORMULA_V2, data=trial).fit().aic
+        if aic < best_aic:
+            best_ramp, best_aic = candidate, aic
+    return best_ramp
 
 
 def build_rest_of_country_series(df):
@@ -103,7 +119,6 @@ def fit_v2_specification(rest_of_country):
     national["months_since_post_listing"] = national["post_listing"] * (
         national["t"] - national.loc[national["post_listing"] == 1, "t"].min()
     )
-    national["early_ramp"] = national["months_since_post_listing"].clip(upper=RAMP_MONTHS)
     national["covid_period"] = (
         (national["month"] >= COVID_START) & (national["month"] <= COVID_END)
     ).astype(int)
@@ -117,6 +132,10 @@ def fit_v2_specification(rest_of_country):
     trough_offset = trough_t - covid_window["t"].min()
     national["covid_decline"] = months_since_covid_start.clip(upper=trough_offset)
     national["covid_recovery"] = (months_since_covid_start - trough_offset).clip(lower=0)
+
+    ramp_months = select_ramp_months(national)
+    national["early_ramp"] = national["months_since_post_listing"].clip(upper=ramp_months)
+    national.attrs["ramp_months"] = ramp_months
 
     model = smf.ols(FORMULA_V2, data=national).fit()
     national["fitted"] = model.fittedvalues
@@ -286,14 +305,16 @@ def plot_full_series(df, national):
     return save_figure(fig, "pbs_prep_dispensing_initial_chart.png")
 
 
-def plot_dispensing_overview_annotated(df, national):
+def plot_dispensing_overview_annotated(df, national, ramp_months):
     """Same chart as plot_full_series, with the distinct segments a specification
     needs to account for marked out and dated directly: the post-listing ramp to
     a steady state, the steady linear growth after it, the COVID dip and its
-    trough, and the continued growth once COVID ends.
+    trough, and the continued growth once COVID ends. ramp_months is the
+    data-derived length from select_ramp_months(), fitted on the rest-of-country
+    series, not re-derived from this (full-national, NSW-included) series.
     """
     state_pivot = df.pivot(index="month", columns="state", values="prep_dispensing_count")
-    ramp_end_date = PBS_LISTING_DATE + pd.DateOffset(months=RAMP_MONTHS)
+    ramp_end_date = PBS_LISTING_DATE + pd.DateOffset(months=ramp_months)
     covid_window = national[(national["month"] >= COVID_START) & (national["month"] <= COVID_END)]
     trough = covid_window.loc[covid_window["prep_dispensing_count"].idxmin()]
     trough_date = trough["month"]
@@ -432,13 +453,15 @@ def plot_its_specification(national, model):
 def plot_v2_specification(national, model):
     """Geometric story for the revised specification: a pre-listing line (β0, β1),
     a level shift at the listing (β2), a steep early ramp for the first
-    RAMP_MONTHS (β4), the shallower long-run growth after it (β3), and a COVID
-    decline (β5) and recovery (β6), hinged at the observed trough rather than
-    drawn as one symmetric dip, added as a control layer rather than into the
-    core trajectory. See Model specification in reports/stage1_interrupted_time_series.md.
+    ramp_months (β4, data-derived, see select_ramp_months()), the shallower
+    long-run growth after it (β3), and a COVID decline (β5) and recovery (β6),
+    hinged at the observed trough rather than drawn as one symmetric dip, added
+    as a control layer rather than into the core trajectory. See Model
+    specification in reports/stage1_interrupted_time_series.md.
     """
     fig, ax = plt.subplots()
 
+    ramp_months = national.attrs["ramp_months"]
     beta0 = model.params["Intercept"]
     beta1 = model.params["t"]
 
@@ -448,7 +471,7 @@ def plot_v2_specification(national, model):
     t_listing = post["t"].iloc[0]
     pre_extrapolated = beta0 + beta1 * t_listing
     post_start = post["structural"].iloc[0]
-    ramp_end_date = post["month"].iloc[RAMP_MONTHS]
+    ramp_end_date = post["month"].iloc[ramp_months]
 
     ax.axvspan(COVID_START, COVID_END, color="grey", alpha=0.12, zorder=0)
 
@@ -494,18 +517,18 @@ def plot_v2_specification(national, model):
                 arrowprops=dict(arrowstyle="->", color="firebrick", linewidth=1))
 
     # beta4: the ramp's own steep slope, read as a triangle between the listing
-    # date and the point where early_ramp stops growing (RAMP_MONTHS later)
+    # date and the point where early_ramp stops growing (ramp_months later)
     ramp_y0 = post["structural"].iloc[0]
-    ramp_y1 = post["structural"].iloc[RAMP_MONTHS]
+    ramp_y1 = post["structural"].iloc[ramp_months]
     ax.plot([listing_date, ramp_end_date], [ramp_y0, ramp_y0], color="darkorange", linewidth=1, linestyle="--")
     ax.plot([ramp_end_date, ramp_end_date], [ramp_y0, ramp_y1], color="darkorange", linewidth=1, linestyle="--")
-    ax.annotate("β4 (ramp slope,\nfirst {} months)".format(RAMP_MONTHS),
+    ax.annotate("β4 (ramp slope,\nfirst {} months)".format(ramp_months),
                 xy=(ramp_end_date, (ramp_y0 + ramp_y1) / 2), xytext=(10, -65),
                 textcoords="offset points", fontsize=9.5, color="darkorange", va="center")
 
     # beta3: the shallower long-run slope, read a year past the ramp so it isn't
     # blended with the ramp's much steeper early slope
-    ref_idx = min(RAMP_MONTHS + 12, len(post) - 1)
+    ref_idx = min(ramp_months + 12, len(post) - 1)
     ref_x = post["month"].iloc[ref_idx]
     ref_y = counterfactual.iloc[ref_idx]
     actual_y = post["structural"].iloc[ref_idx]
@@ -567,7 +590,7 @@ def main():
     print(comparison.to_string(index=False))
 
     dispensing_initial_path = plot_full_series(df, national)
-    dispensing_path = plot_dispensing_overview_annotated(df, national)
+    dispensing_path = plot_dispensing_overview_annotated(df, national, v2_fit.attrs["ramp_months"])
     zoom_path = plot_nsw_pretrend(df)
     initial_spec_path = plot_its_specification(national_fit, model)
     v2_spec_path = plot_v2_specification(v2_fit, v2_model)

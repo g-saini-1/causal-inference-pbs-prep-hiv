@@ -78,9 +78,11 @@ increasing order of rigour:
    contact against other transmission categories.*
 
    PrEP overwhelmingly targets gay
-   and bisexual men, so notifications attributed to heterosexual
-   transmission or other categories form a natural control group that was
-   not materially treated by PrEP availability. Comparing trend breaks
+   and bisexual men [1, 2], the population attributed with the large
+   majority of new HIV diagnoses nationally, so notifications attributed to
+   heterosexual transmission or other categories form a natural control
+   group that was not materially treated by PrEP availability. Comparing
+   trend breaks
    between groups around April 2018 is a stronger causal method than a
    plain before/after comparison, since it nets out any general downward
    trend in HIV testing or awareness campaigns.
@@ -132,3 +134,15 @@ increasing order of rigour:
 Each stage answers a narrower question that the next stage builds on.
 Together, they build up an answer to the main question by progressively
 ruling out that something other than PrEP access was responsible.
+
+## References
+
+1. Kirby Institute. *HIV, viral hepatitis and sexually transmissible infections
+   in Australia: annual surveillance report 2018*. Sydney: Kirby Institute,
+   UNSW Sydney; 2018. Reports approximately 70% of new HIV diagnoses in 2018
+   as attributed to sexual contact between men.
+2. Australasian Society for HIV, Viral Hepatitis and Sexual Health Medicine
+   (ASHM). *National PrEP guidelines update: prevent HIV by prescribing
+   PrEP*. Sydney, 2021. Sets out PrEP suitability criteria specific to men
+   who have sex with men (Box 4.1, p.18), and reports 99% of PBS-subsidised
+   PrEP recipients were male by the end of 2018 (p.12).
