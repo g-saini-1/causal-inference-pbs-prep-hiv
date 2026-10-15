@@ -1,177 +1,221 @@
-# Data acquisition, synthetic data, and QA: PBS-subsidised PrEP and HIV diagnoses
-
-*A causal inference case study using Australian PrEP listing and HIV surveillance data*
+# Data acquisition and synthetic data
 
 ## Overview
 
-This document covers how the data behind this project was sourced, why the analysis
-ultimately runs on synthetic data instead of the real PBS/NNDSS extracts, how that
-synthetic data was built, and the QA performed on it. For the causal question, the
-four-stage design, and why this project was chosen, see
-[`docs/scope_and_rationale.md`](../docs/scope_and_rationale.md). For Stage 1's
-results, see
-[`reports/stage1_interrupted_time_series.md`](stage1_interrupted_time_series.md).
+This document covers how the data behind this project was sourced, why it
+runs on a combination of synthetic and real PBS/NNDSS
+extracts, and how each series was built, one dataset at a time. For QA and 
+a deeper check of each series against real ground truth, see
+[`reports/data_validation.md`](data_validation.md).
 
-## Background and the PBS item codes involved
+**Data sourcing and licensing.** Real third-party source files (PBS Item
+Reports, Kirby Institute reports, Kirby's HIV dashboard exports) are kept
+locally, not committed to git (see `.gitignore`), a project choice rather
+than a uniform legal bar: the PBS Item Reports carry a Creative Commons
+Attribution 3.0 Australia licence permitting redistribution with
+attribution, while the Kirby Institute material carries no stated licence
+and falls back to UNSW's general site policy, a genuine grey area on public
+redistribution. Facts drawn from these sources are cited by their
+real-world origin rather than a local path, so this document's claims stay
+checkable without the files themselves.
 
-PrEP is the co-formulated antiretroviral tenofovir disoproxil + emtricitabine, sold
-under the brand name Truvada and, since patent expiry, under several generic brands.
-On the PBS, these are listed as **Restricted Benefit** items with the indication
-*"Pre-exposure prophylaxis (PrEP) against human immunodeficiency virus (HIV)
-infection"*, for example item **11296M** (tenofovir disoproxil 300 mg + emtricitabine
-200 mg, 30 tablets, Viatris/Alphapharm brand), alongside equivalent items for other
-brands and pack sizes (e.g. 12542D). This PrEP-specific restriction is what
-distinguishes these dispensings from tenofovir/emtricitabine prescribed for
-*treating* existing HIV infection, which sits under a separate item and restriction.
+**Status.** The PBS dispensing data section below is complete. The HIV
+notifications data and State covariates data sections are still to be
+completed.
 
-The **Kirby Institute** (UNSW Sydney) publishes its own "Monitoring HIV PrEP uptake in
-Australia" series using this same PBS-restriction logic. It draws on every
-PBS-subsidised PrEP prescription dispensed since 1 April 2018, identified via the
-PrEP-specific restricted-benefit item codes rather than by drug name alone, and
-provides an external check for anyone extracting the same item codes from the raw
-PBS Item Reports on data.gov.au. The raw PBS Item Report extract used for this
-project (`data/raw/pbs-dispensing-data/PBS_Data_2103987483.7.xls`) shows about
-59,600 PrEP dispensing services nationally in the first nine months after listing
-(April to December 2018), rising from a standing start.
+## PBS dispensing data
 
-## Data acquisition attempt: what was attempted with real-world data
+### Data requirements
 
-Before settling on synthetic data, a genuine attempt was made to source and validate
-both halves of the causal chain from public real-world data. This surfaced two
-distinct, unresolved data-availability problems: one on the treatment (PBS dispensing)
-side, and one on the outcome (HIV notifications) side, that together motivated the
-switch to synthetic data.
+PrEP is the co-formulated antiretroviral tenofovir disoproxil + emtricitabine,
+sold under the brand name Truvada and, since patent expiry, under several
+generic brands. On the PBS, it is listed under several item codes, one per brand and pack size, with the indication *"Pre-exposure
+prophylaxis (PrEP) against human immunodeficiency virus (HIV) infection"*,
+for example item 11296M (tenofovir disoproxil 300 mg + emtricitabine
+200 mg, 30 tablets, Viatris/Alphapharm brand). This PrEP-specific restriction
+distinguishes these dispensings from the same drug prescribed to *treat*
+existing HIV infection, which sits under a separate item and restriction.
 
-### PBS item code identification and verification
+The project's dispensing series must span January 2016 to October 2022,
+so it covers both sides of the April 2018 PBS listing and supports a pre-
+and post-treatment comparison (see
+[`docs/scope_and_rationale.md`](../docs/scope_and_rationale.md)). Meeting
+that requirement means identifying every PBS item code that carries the
+PrEP restriction above, and establishing when each one started.
 
-PrEP dispensing on the PBS is not tracked under a single item code. Multiple brands
-and pack sizes of tenofovir disoproxil + emtricitabine are each assigned their own
-code, and the PBS item drug map returned **six item codes** carrying the PrEP-specific
-restricted-benefit indication. Each code was checked against PBS Schedule history
-(monthly schedule snapshots, searched across a widened window of January 2017 to June
-2026) to confirm both that it was genuinely PrEP-restricted (as opposed to an
-HIV-*treatment* item under the same drug name) and to establish its listing date:
+#### Identifying PrEP item codes
+The item codes were identified through the following steps:
 
-- **11276L and 11296M** were both confirmed with a listing date of **April 2018**,
-  directly corroborating the project's assumed treatment date and giving external
-  validation that the PBS listing date used throughout the design is correct.
-- **12542D** was confirmed with a later listing date of **June 2021**, consistent with
-  a new generic brand entering the market well after the original listing.
-- **15366R, 15383P, and 15410C** (the remaining three codes flagged as PrEP-restricted
-  in the drug map) could not be found in the PBS Schedule history at all, despite the
-  widened search window. Cross-referencing PBS item groupings suggested item code
-  families are periodically restructured (older codes superseded by new ones as brands
-  are added or schedules are reorganised), which is the most likely explanation,
-  though it could not be confirmed conclusively without direct access to PBS change
-  logs for those specific codes. Since the two priority checks (confirming the
-  April 2018 treatment date and identifying materially-volumed codes) were already
-  satisfied by the three confirmed codes, further reconciliation of these three was
-  deprioritised rather than allowed to block the project.
+- The item codes currently listed were obtained from the PBS medicine
+  search (https://www.pbs.gov.au/) for tenofovir disoproxil +
+  emtricitabine.
+- Older item codes that have since been deleted from the schedule were
+  obtained by manually searching the historical archive of monthly
+  Schedules of Pharmaceutical Benefits
+  (https://www.pbs.gov.au/publication/schedule/archive).
+- The resulting item codes were validated against the item codes listed
+  in the **Kirby Institute** (UNSW Sydney) report series "Monitoring HIV
+  pre-exposure prophylaxis (PrEP) uptake in Australia" [1].
 
-### Difficulty obtaining pre-2019 HIV notification data
+These are the item codes found, and the month each has dispensing data.
+Four of the eight codes, 14636H, 15366R, 15383P, and 15410C, list after the
+project's October 2022 end date; they are recorded for completeness, not
+because the ground-truth comparison needs them.
 
-The outcome side proved harder to resolve. The project design requires **quarterly**
-HIV notification counts by state and transmission category, with several years of
-pre-treatment history (back to at least 2013–2016) needed to test the parallel-trends
-assumption underpinning the difference-in-differences design.
+| Item code | Month listing starts | Sources |
+|---|---|---|
+| 11276L | April 2018 | Kirby Institute report series [1]; PBS Item Report extract |
+| 11296M | April 2018 | Kirby Institute report series [1]; PBS Item Report extract |
+| 11306C | April 2018 | Kirby Institute report series [1]; PBS Item Report extract |
+| 12542D | April 2021 | Kirby Institute report series [1]; PBS Item Report extract |
+| 14636H | October 2024 | PBS Item Report extract only (postdates Kirby Issues 1-10) |
+| 15366R | July 2026 | PBS Item Report extract only (postdates Kirby Issues 1-10) |
+| 15383P | July 2026 | PBS Item Report extract only (postdates Kirby Issues 1-10) |
+| 15410C | July 2026 | PBS Item Report extract only (postdates Kirby Issues 1-10) |
 
-- The **NNDSS extract on data.gov.au** was only available from **Q1 2019** onward.
-- Investigating further, this was found to reflect a genuine feature of how the data
-  is collected nationally, not a download or access fault: Kirby Institute's own
-  quarterly, exposure-category-stratified HIV reporting series (corroborated by a
-  Health Equity Matters summary of the same series) confirms that this level of
-  aggregate quarterly detail (broken down by jurisdiction, exposure category, age,
-  and other fields) was **only introduced starting Q1 2019**. Before that date,
-  equivalent exposure-category detail exists only at **annual** resolution, published
-  in Kirby's Annual Surveillance Reports as PDF tables rather than machine-readable
-  data.
-- This left no way to build a genuinely quarterly, exposure-stratified notification
-  series spanning both sides of the April 2018 treatment date from public sources.
-  The pre-period would have had to be annual while the post-period was quarterly, an
-  asymmetry that would complicate the diff-in-diff and staggered-adoption designs
-  considerably, and the annual PDF tables would still have required substantial manual
-  extraction effort to assemble even at that coarser resolution.
+### Data availability
 
-### Why this led to synthetic data
+Once the codes were confirmed, PBS dispensing data for those codes (by
+item, scheme, state, and month, January 2016 to July 2026) was downloaded
+from Services Australia's Medicare Statistics PBS Item Reports tool. The
+exact URL used for that download cannot be confirmed: the downloaded
+extract files carry no source link, only a Services Australia disclaimer,
+and the tool does not appear to still be available at its expected
+address.
 
-With the treatment-date evidence already secured (via the PBS Schedule verification
-above) but no clean path to a full quarterly pre/post outcome series, the project
-switched to generating **synthetic data with the same structure and known, built-in
-effects**, described below, so that the full causal-inference workflow (the quarterly
-resolution and multi-year pre-period the real data couldn't supply) could still be
-built and validated end-to-end against a known ground truth.
+### Data gaps
 
-## Data used, and why it's synthetic
+Two gaps affect the real-world data:
 
-The design calls for two linked datasets: monthly PBS PrEP dispensing counts by state,
-and quarterly HIV notification counts by state and transmission category, plus
-state-level covariates for heterogeneity analysis. The real-world equivalents exist
-(PBS Item Reports and NNDSS/Kirby surveillance data are both public), but for this
-project we generated **synthetic data with the same structure and known,
-built-in effects**, for two reasons:
+1. **No PBS dispensing data before April 2018.** The raw PBS Item Report
+   extract has zero dispensing rows, for any state or any of the eight
+   item codes above, before April 2018: these items did not exist on the
+   PBS schedule earlier, so no PBS claims data can show pre-listing
+   dispensing.
+2. **NSW's EPIC-NSW trial left no PBS item code trail either.** From March
+   2016, the EPIC-NSW trial [6] supplied PrEP to NSW (and a small number
+   of ACT) participants entirely outside the PBS claims system, funded by
+   the NSW Ministry of Health, with medication donated by Gilead and
+   purchased from Mylan. NSW dispensing is a partial exception in
+   substance during this period, just not in this data source.
 
-- It lets the causal-inference code be checked against a **known ground truth**
-  (an effect we deliberately put in) rather than an unknown real effect, which is
-  the standard way to validate that an estimator is working correctly before
-  trusting it on real data.
-- It avoids the extra step of reconciling multiple public data extracts (PBS item
-  filters, NNDSS category definitions, state boundaries) before any modelling could
-  start, while still letting the workflow, charts, and regressions be built and
-  tested end-to-end.
+The project's causal design (see
+[`docs/scope_and_rationale.md`](../docs/scope_and_rationale.md)) needs a
+dispensing series spanning both sides of the April 2018 listing; real PBS
+data alone cannot supply the "before" half.
 
-### How the synthetic data was built
+### Data acquisition and construction
 
-A single generator script produces all three files from a fixed random seed, so the
-data is reproducible:
+Because of these gaps, the pre-listing period is constructed instead. No
+value below is randomly generated, each segment is either a verified real
+fact, a documented construction from real milestones, or the real extract
+itself:
 
-- **PBS dispensing** (`pbs_dispensing_monthly.csv`): each state's monthly dispensing
-  count combines an early ramp for NSW from 2016 (EPIC-NSW), a large level shift and
-  ramp-up for all states from April 2018, and a COVID-era dip in 2020 that is deepest
-  and longest in Victoria, then adds realistic Poisson noise.
-- **HIV notifications** (`hiv_notifications_quarterly.csv`): each state/category/
-  quarter combines a mild shared secular decline, a PrEP-driven reduction applied
-  only to the MSM category from each state's own treatment start date (2016 for NSW,
-  2018 for the rest), and a shared 2020 testing-disruption dip, calibrated so the
-  national annual total tracks anchor figures of 1,028 diagnoses in 2015 and 838 in
-  2018. These are close to, but not identical to, the real totals in the raw NNDSS
-  extract used for this project
-  (`data/raw/hiv_notification_data/hiv_notifications_data_by_hiv_exposure.csv`),
-  which sum to 1,030 in 2015 and 840 in 2018.
-- **State covariates** (`state_covariates.csv`): static, plausible state-level figures
-  (population, MSM population proxy, socioeconomic index, testing rates, lockdown
-  severity, EPIC-NSW early-access flag) for the optional heterogeneity analysis.
+- **January 2016 to March 2018, rest of country (and NSW before March
+  2016): zero**, the real value, since these item codes did not exist on
+  the PBS schedule yet.
+- **March 2016 to March 2018, NSW: constructed from EPIC-NSW's published
+  enrolment milestones** [6], tracking cumulative enrolment (about 462
+  new participants a month to 3,700 by October 2016, then about 334 a
+  month to 9,709 by April 2018).
+- **April 2018 to October 2022, all states: the real PBS Item Report
+  extract**, used directly, unmodified. November and December 2022 are
+  excluded: an isolated collapse in the raw extract
+  for those two months, consistent with reporting lag rather than a real
+  drop, left no reliable figure to use, so the series ends in October
+  2022 instead.
 
-## Quality assurance performed on the synthetic data
+## HIV notifications data
 
-Generating data with a known effect is only useful if that effect is represented
-correctly, so the synthetic output was checked against the intended story and two
-issues were found and corrected:
+### Data requirements
 
-1. **An artificial one-month dip in national PrEP dispensing at exactly April 2018.**
-   The original formula switched NSW's pre-listing trial dispensing off in the same
-   month the post-listing ramp started at zero, so a real, ongoing cohort of trial
-   participants briefly disappeared from the data, a modelling artifact, not a real
-   phenomenon (people don't stop taking PrEP the month a subsidy mechanism changes).
-   This was fixed by treating the trial-era dispensing as a floor that the new ramp
-   grows past, rather than a switch that turns off.
-2. **Hidden coupling between the two datasets' randomness.** Both files were
-   originally drawn from a single shared random-number stream, so a fix to the PBS
-   dispensing logic silently changed the unrelated HIV notification numbers too. The
-   generator was refactored to use independent random streams per dataset, and the
-   national annual HIV total was recalibrated against the anchor figures described
-   above (now 1,034 and 820 against targets of 1,028 and 838, versus 1,066 and 889
-   before).
+The project design requires **quarterly** HIV notification counts by
+state and transmission category, spanning both sides of the April 2018
+treatment date, with several years of pre-treatment history (back to at
+least 2013-2016, see
+[`docs/scope_and_rationale.md`](../docs/scope_and_rationale.md)).
 
-Two further observations were logged for the analysis stage rather than changed in
-the data, since they reflect genuine features of the staggered-rollout design rather
-than errors:
+### Data availability
 
-- NSW's early EPIC-NSW dispensing means the *national* pre-2018 baseline is not
-  strictly "near zero," which will bias a naive single-break national segmented
-  regression. This is the reason the staggered-adoption design (Stage 3) exists,
-  rather than a defect to remove. See
-  [`reports/stage1_interrupted_time_series.md`](stage1_interrupted_time_series.md)
-  for the chart and analysis of this pre-trend.
-- NSW's trial-era dispensing floor is capped and held constant going forward; this is
-  inert under current parameters but would need revisiting if the post-listing scale
-  parameter were substantially reduced in a future version.
+Three real-world sources were checked for HIV notification counts:
+
+- The National Notifiable Diseases Surveillance System (NNDSS) extract on
+  data.gov.au, available only from **Q1 2019** onward. This reflects a
+  genuine feature of how the data is collected nationally, not a download
+  or access fault.
+- The project's own copy of a Kirby Institute National HIV Quarterly
+  Report [2], whose tables run from **Q1 2019** to Q2 2023 with no earlier
+  quarters present, consistent with the Kirby Institute's description of
+  this report series [3] and a Health Equity Matters summary of it [4].
+- Earlier years' exposure-category detail, available only at **annual**
+  resolution: the Kirby Institute's interactive data dashboard [5]
+  provides annual, machine-readable exposure-category figures back to at
+  least 2015 (2013, at the time of this project's own download), and
+  Kirby's Annual Surveillance Reports publish the same annual detail as
+  PDF tables.
+
+### Data gaps
+
+Two gaps affect the real-world data:
+
+1. **No quarterly resolution before 2019.** Neither real source above
+   offers quarterly counts before 2019; the pre-period would have had to
+   be annual while the post-period was quarterly, an asymmetry that would
+   complicate the project's difference-in-differences designs.
+2. **Manual extraction required even at annual resolution.** The annual
+   PDF tables would still have required substantial manual extraction to
+   assemble, even at that coarser resolution.
+
+This left no way to build a genuinely quarterly, exposure-stratified series
+spanning both sides of the April 2018 treatment date from public sources.
+
+### Data acquisition and construction
+
+With no quarterly pre-period available, the project generated synthetic
+data with the same structure and a known, built-in effect, calibrated so
+the national annual total tracks published anchor figures of 1,028
+diagnoses in 2015 and 838 in 2018, close to, but not identical to, the real
+totals in the Kirby Institute's interactive data dashboard [5], which sum
+to 1,030 in 2015 and 840 in 2018.
+
+Each state/category/quarter combines a mild shared secular decline, a
+PrEP-driven reduction applied only to the MSM category from each state's
+own treatment start date (2016 for NSW, 2018 for the rest), and a shared
+2020 testing-disruption dip, calibrated to the anchor figures above.
+
+## State covariates data
+
+This dataset was never attempted from real-world sources; it holds static,
+plausible state-level figures (population, MSM population proxy,
+socioeconomic index, testing rates, lockdown severity, EPIC-NSW early-access
+flag) built directly for the optional heterogeneity analysis, not
+calibrated to any published figures.
+
+## References
+
+1. Kirby Institute. *Monitoring HIV pre-exposure prophylaxis (PrEP) uptake in
+   Australia* [report series, Issues 1-10, 2019-2024]. Sydney: Kirby Institute,
+   UNSW Sydney. Series page: https://www.kirby.unsw.edu.au/research/reports;
+   Issue 10, used for item-code validation:
+   https://www.kirby.unsw.edu.au/research/reports/monitoring-hiv-pre-exposure-prophylaxis-prep-uptake-australia-issue-10.
+   Item codes stated explicitly from Issue 6 (May 2022) onward: 11276L,
+   11296M, 11306C, 12542D.
+2. Kirby Institute. *HIV summary Q2 2023* [National HIV Quarterly Report].
+   Sydney: Kirby Institute, UNSW Sydney.
+   https://www.kirby.unsw.edu.au/sites/default/files/documents/HIV%20summary%20Q2%202023.pdf.
+   Table 2 (pages 1-2) covers Q1 2019 to Q2 2023.
+3. Kirby Institute. *National HIV quarterly report* [report series page].
+   https://www.kirby.unsw.edu.au/research/reports/national-hiv-quarterly-report.
+4. Health Equity Matters. *National quarterly HIV reporting*.
+   https://www.healthequitymatters.org.au/resources/national-quarterly-hiv-reporting.
+   Summarises the same Kirby Institute series; its most recent edition states
+   coverage of "quarter 1 (January to March) 2019 to quarter 2 (April to June)
+   2023," corroborating the Q1 2019 starting point.
+5. Kirby Institute. *HIV* [interactive data dashboard]. Sydney: Kirby Institute,
+   UNSW Sydney. https://www.data.kirby.unsw.edu.au/hiv. Annual notifications by
+   exposure category, jurisdiction, age, sex, and First Nations status.
+6. Grulich AE, Jin F, Bavinton BR, et al (EPIC-NSW research group). Long-term
+   protection from HIV infection with oral HIV pre-exposure prophylaxis in gay
+   and bisexual men: findings from the expanded and extended EPIC-NSW
+   prospective implementation study. *The Lancet HIV*. 2021. DOI:
+   [10.1016/S2352-3018(21)00074-6](https://doi.org/10.1016/S2352-3018(21)00074-6).
