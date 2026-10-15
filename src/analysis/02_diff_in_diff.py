@@ -6,7 +6,7 @@ Heterosexual/Other notifications (the comparison group, unaffected by PrEP
 availability but exposed to the same secular trends) around the 1 April 2018
 PBS listing date. See docs/scope_and_rationale.md, Stage 2, for the full
 identification argument. Data exploration write-up:
-reports/hiv_notifications_data_exploration.md.
+reports/data_exploration_hiv_notifications.md.
 
 NSW excluded, same as Stage 1. Its EPIC-NSW trial gives NSW's own MSM
 notifications an early, separately-timed decline from 2016, which a single

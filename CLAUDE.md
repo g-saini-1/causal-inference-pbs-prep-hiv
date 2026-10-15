@@ -45,7 +45,7 @@ documented column-by-column in `data/data_dictionary.md`. Because the ground tru
 stage's fitted result can be checked against it rather than trusted blind. `data/raw/` holds the
 real PBS/NNDSS/Kirby extracts from the abandoned real-data attempt, kept locally for reference
 only and excluded from git (see `.gitignore`); what it contains and how the synthetic data compares
-against it is documented in `reports/data_acquisition.md` and `reports/synthetic_data_validation.md`,
+against it is documented in `reports/data_acquisition.md` and `reports/data_validation.md`,
 which are tracked.
 
 **`docs/` vs `reports/`.** `docs/` holds stage-agnostic reference material reused across stages:

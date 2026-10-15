@@ -11,7 +11,7 @@ can be checked against a known answer:
    states), a documented construction from EPIC-NSW's published enrolment
    milestones for NSW's Mar 2016 - Mar 2018 trial period, and 0 everywhere
    else pre-listing (these PBS item codes did not exist yet). See
-   reports/synthetic_data_validation.md's "Generation rules" (PBS
+   reports/data_validation.md's "Generation rules" (PBS
    dispensing) for the full reasoning.
 
 2. hiv_notifications_quarterly.csv
@@ -61,7 +61,7 @@ STATE_WEIGHTS = {"NSW": 0.32, "VIC": 0.26, "QLD": 0.20, "WA": 0.11, "SA": 0.07, 
 # 1. PBS DISPENSING (monthly, state x month), Jan 2016 - Dec 2022
 #
 # Built from real data and a referenced construction, not a fitted formula;
-# see reports/synthetic_data_validation.md's "Generation rules" (PBS
+# see reports/data_validation.md's "Generation rules" (PBS
 # dispensing) for the full reasoning behind each of the three rules below.
 # =============================================================
 months = pd.date_range("2016-01-01", "2022-12-01", freq="MS")
