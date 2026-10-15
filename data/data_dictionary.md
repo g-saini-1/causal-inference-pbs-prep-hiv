@@ -14,7 +14,7 @@ synthetic data compares against them is documented in the tracked
 
 ## `pbs_dispensing_monthly.csv`
 
-One row per state × month, January 2016 – December 2022.
+One row per state × month, January 2016 – October 2022.
 
 | column | type | meaning |
 |---|---|---|

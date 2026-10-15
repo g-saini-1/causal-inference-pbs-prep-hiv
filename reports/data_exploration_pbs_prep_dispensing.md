@@ -7,7 +7,7 @@ causal design.
 
 ## National and state-level dispensing patterns
 
-![PBS PrEP dispensing counts by state and nationally, January 2016 to December 2022](figures/pbs_prep_dispensing_chart.png)
+![PBS PrEP dispensing counts by state and nationally, January 2016 to October 2022](figures/pbs_prep_dispensing_chart.png)
 
 Does the data actually show the large, obvious level shift the project's causal
 argument depends on? It does. Before the April 2018 listing, every state except
@@ -25,8 +25,8 @@ year. Three further patterns are visible without any modelling:
   state's: comparing April-August 2020 to each state's own late-2019 average,
   Victoria falls to about two-thirds of its baseline while every other state
   stays roughly flat or higher, consistent with Victoria's extended lockdowns.
-  The recovery afterward is noisy rather than smooth, and national dispensing in
-  December 2022 (13,369) remains somewhat below its late-2019 average.
+  The recovery afterward is noisy rather than smooth, and national dispensing at
+  the series end in October 2022 (11,472) remains below its late-2019 average.
 - **NSW is already elevated before the national listing.** Its line separates
   from the other states well before April 2018, which is the first visual hint
   that the "before" period isn't as flat as a simple before/after comparison
