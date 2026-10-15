@@ -1,7 +1,7 @@
 """Tests for src/generate.py's PBS dispensing series: the three generation
 rules (rest of country zero pre-listing, NSW's EPIC-NSW construction, real
 data from April 2018 onward) and the ground-truth checks that justify them.
-See reports/synthetic_data_validation.md's "Generation rules" (PBS
+See reports/data_validation.md's "Generation rules" (PBS
 dispensing) for the full reasoning behind each rule tested here.
 
 HIV notifications and state covariates are not covered yet.

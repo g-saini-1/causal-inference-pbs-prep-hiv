@@ -10,7 +10,7 @@ report fills in as that work happens, in step with
 
 ## Data exploration
 
-See `reports/hiv_notifications_data_exploration.md` for the full write-up.
+See `reports/data_exploration_hiv_notifications.md` for the full write-up.
 MSM notifications fall 44% (unconditional, before/after April 2018, all
 states) against 19% for the Heterosexual/Other comparison group, the raw
 signal this stage's model formalises. But the national MSM series is also

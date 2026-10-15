@@ -152,6 +152,53 @@ def fit_v2_specification(rest_of_country):
     return model, national
 
 
+# Poisson and NB break on the full series: the pre-listing period is a verified,
+# deterministic zero (real PBS Item Report data has no rows there at all, see
+# reports/data_validation.md), and a log-link GLM meeting an exact-zero
+# segment is degenerate, the intercept is pushed toward -inf and post_listing
+# compensates with an astronomical, uninterpretable coefficient. Fitting them on
+# the post-listing period only avoids this: there is no t or post_listing term
+# (both are constant/collinear once the pre-period is dropped), so this
+# characterises the post-period's own shape (ramp, long-run growth, COVID),
+# not the level shift itself, that remains OLS's job on the full series.
+FORMULA_POST = "prep_dispensing_count ~ months_since_post_listing + early_ramp + covid_decline + covid_recovery"
+
+
+def fit_post_listing_count_models(national):
+    """Fits Poisson and Negative Binomial on the post-listing subset only (see
+    module comment above for why). Returns the two fitted models and an
+    Empirical comparison checklist table in the same shape as
+    fit_candidate_families's, scoped to months_since_post_listing rather than
+    post_listing, since there is no pre/post comparison left in this data.
+    """
+    post = national[national["post_listing"] == 1].copy()
+
+    poisson_model = smf.glm(FORMULA_POST, data=post, family=sm.families.Poisson()).fit()
+    nb_model = smf.negativebinomial(FORMULA_POST, data=post).fit(disp=False)
+
+    poisson_dispersion = poisson_model.pearson_chi2 / poisson_model.df_resid
+    nb_alpha = nb_model.params["alpha"]
+    nb_alpha_ci = nb_model.conf_int().loc["alpha"]
+
+    rows = [
+        {
+            "Candidate": "Poisson",
+            "Coefficient (months_since_post_listing)": f"x{np.exp(poisson_model.params['months_since_post_listing']):.3f} (multiplicative)",
+            "AIC": poisson_model.aic,
+            "Assumption check": f"Pearson chi-squared / df = {poisson_dispersion:.2f}",
+            "Autocorrelation check": f"Durbin-Watson = {durbin_watson(poisson_model.resid_response):.3f}",
+        },
+        {
+            "Candidate": "NB",
+            "Coefficient (months_since_post_listing)": f"x{np.exp(nb_model.params['months_since_post_listing']):.3f} (multiplicative)",
+            "AIC": nb_model.aic,
+            "Assumption check": f"alpha = {nb_alpha:.4f}, 95% CI [{nb_alpha_ci[0]:.4f}, {nb_alpha_ci[1]:.4f}]",
+            "Autocorrelation check": f"Durbin-Watson = {durbin_watson(nb_model.resid):.3f}",
+        },
+    ]
+    return poisson_model, nb_model, pd.DataFrame(rows)
+
+
 def fit_candidate_families(national, formula=FORMULA):
     """Fit OLS, Poisson, and Negative Binomial on the same specification, and
     compute the Empirical comparison checklist items from
@@ -193,14 +240,14 @@ def fit_candidate_families(national, formula=FORMULA):
     return ols_model, poisson_model, nb_model, pd.DataFrame(rows)
 
 
-def plot_family_distribution_comparison(national, ols_model, poisson_model, nb_model):
-    """Compares OLS/Gaussian, Poisson, and NB's own fitted shape for one
-    pre-listing and one post-listing month, using each model's real fitted
-    mean (OLS's constant residual SD and NB's fitted alpha set the spread).
-    See the Model family selection section of
-    reports/stage1_interrupted_time_series.md for the numbers behind it.
+def plot_family_distribution_comparison(national, poisson_model, nb_model):
+    """Compares Poisson and NB's own fitted shape (post-listing period only,
+    see fit_post_listing_count_models) for an early-ramp and a later,
+    steadier post-listing month, using each model's real fitted mean (NB's
+    fitted alpha sets its extra spread). OLS is not part of this comparison:
+    it is the full-series headline model, fit where Poisson/NB cannot be,
+    see Model family selection in reports/stage1_interrupted_time_series.md.
     """
-    ols_sd = np.sqrt(ols_model.mse_resid)
     alpha = nb_model.params["alpha"]
 
     def nb_pmf(k, mu):
@@ -208,78 +255,73 @@ def plot_family_distribution_comparison(national, ols_model, poisson_model, nb_m
         p = n / (n + mu)
         return nbinom.pmf(k, n, p)
 
-    pre_row = national.iloc[[0]]
-    post_row = national[national["month"] == pd.Timestamp("2019-06-01")]
+    post = national[national["post_listing"] == 1]
+    early_row = post.iloc[[2]]  # a few months in, still mid-ramp
+    later_row = post[post["month"] == pd.Timestamp("2019-06-01")]
     cases = [
-        (f"Pre-listing ({pre_row['month'].dt.strftime('%b %Y').iloc[0]})", pre_row),
-        (f"Post-listing ({post_row['month'].dt.strftime('%b %Y').iloc[0]})", post_row),
+        (f"Early post-listing ({early_row['month'].dt.strftime('%b %Y').iloc[0]})", early_row),
+        (f"Later post-listing ({later_row['month'].dt.strftime('%b %Y').iloc[0]})", later_row),
     ]
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 5.5))
     for ax, (label, row) in zip(axes, cases):
-        ols_mu = ols_model.predict(row).iloc[0]
         poisson_mu = poisson_model.predict(row).iloc[0]
         nb_mu = nb_model.predict(row).iloc[0]
         poisson_sd = np.sqrt(poisson_mu)
         nb_sd = np.sqrt(nb_mu + alpha * nb_mu**2)
 
-        lo = min(ols_mu - 4 * ols_sd, nb_mu - 4 * nb_sd, 0)
-        hi = max(ols_mu + 4 * ols_sd, nb_mu + 4 * nb_sd)
+        lo = max(0, nb_mu - 4 * nb_sd)
+        hi = nb_mu + 4 * nb_sd
         k = np.arange(int(np.floor(lo)), int(np.ceil(hi)) + 1)
 
         ax.bar(k, poisson.pmf(k, poisson_mu), width=1, alpha=0.5, color="#4C72B0",
                label=f"Poisson, μ={poisson_mu:.0f} (SD≈{poisson_sd:.0f})")
         ax.bar(k, nb_pmf(k, nb_mu), width=1, alpha=0.5, color="#C44E52",
                label=f"NB, μ={nb_mu:.0f} (SD≈{nb_sd:.0f})")
-        xs = np.linspace(lo, hi, 1000)
-        ax.plot(xs, norm.pdf(xs, ols_mu, ols_sd), color="#55A868", linewidth=2,
-                label=f"OLS/Gaussian, μ={ols_mu:.0f} (SD≈{ols_sd:.0f})")
-        ax.fill_between(xs, norm.pdf(xs, ols_mu, ols_sd), color="#55A868", alpha=0.25)
-        ax.axvline(0, color="black", linewidth=0.8, linestyle=":")
         ax.set_title(label, fontsize=10)
         ax.set_xlabel("Monthly dispensing count")
         ax.legend(fontsize=8, loc="upper right")
-    axes[0].set_ylabel("Probability (mass for Poisson/NB, density for OLS)")
+    axes[0].set_ylabel("Probability mass")
 
-    fig.suptitle("OLS, Poisson, and NB: each family's own fitted shape for the same month", fontsize=12)
+    fig.suptitle("Poisson and NB: each family's own fitted shape, post-listing period", fontsize=12)
     fig.tight_layout(rect=[0, 0, 1, 0.93])
     return save_figure(fig, "pbs_prep_family_distribution_chart.png")
 
 
-def _candidate_residuals(ols_model, poisson_model, nb_model):
+def _candidate_residuals(poisson_model, nb_model):
     return {
-        "OLS": ols_model.resid,
         "Poisson": poisson_model.resid_response,
         "NB": nb_model.resid,
     }
 
 
-def plot_residuals_over_time(national, ols_model, poisson_model, nb_model):
-    residuals = _candidate_residuals(ols_model, poisson_model, nb_model)
-    colors = {"OLS": "#55A868", "Poisson": "#4C72B0", "NB": "#C44E52"}
+def plot_residuals_over_time(national, poisson_model, nb_model):
+    post = national[national["post_listing"] == 1]
+    residuals = _candidate_residuals(poisson_model, nb_model)
+    colors = {"Poisson": "#4C72B0", "NB": "#C44E52"}
 
-    fig, axes = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
+    fig, axes = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
     for ax, (name, resid) in zip(axes, residuals.items()):
         ax.axhline(0, color="grey", linewidth=0.8)
-        ax.plot(national["month"], resid, color=colors[name], marker="o", markersize=3, linewidth=1)
+        ax.plot(post["month"], resid, color=colors[name], marker="o", markersize=3, linewidth=1)
         ax.set_ylabel(f"{name} residual")
     axes[-1].set_xlabel("Month")
-    fig.suptitle("Residuals over time: the wave pattern behind the low Durbin-Watson values", fontsize=12)
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    fig.suptitle("Residuals over time, post-listing period only", fontsize=12)
+    fig.tight_layout(rect=[0, 0, 1, 0.94])
     return save_figure(fig, "pbs_prep_residuals_over_time_chart.png")
 
 
-def plot_residuals_acf(ols_model, poisson_model, nb_model):
-    residuals = _candidate_residuals(ols_model, poisson_model, nb_model)
-    colors = {"OLS": "#55A868", "Poisson": "#4C72B0", "NB": "#C44E52"}
+def plot_residuals_acf(poisson_model, nb_model):
+    residuals = _candidate_residuals(poisson_model, nb_model)
+    colors = {"Poisson": "#4C72B0", "NB": "#C44E52"}
 
-    fig, axes = plt.subplots(1, 3, figsize=(13, 4))
+    fig, axes = plt.subplots(1, 2, figsize=(9, 4))
     for ax, (name, resid) in zip(axes, residuals.items()):
         plot_acf(resid, ax=ax, lags=20, color=colors[name], vlines_kwargs={"colors": colors[name]}, title=name)
         ax.set_xlabel("Lag (months)")
     axes[0].set_ylabel("Autocorrelation")
-    fig.suptitle("Autocorrelation function (ACF) of residuals, by candidate", fontsize=12)
-    fig.tight_layout(rect=[0, 0, 1, 0.92])
+    fig.suptitle("Autocorrelation function (ACF) of residuals, post-listing period", fontsize=12)
+    fig.tight_layout(rect=[0, 0, 1, 0.9])
     return save_figure(fig, "pbs_prep_residuals_acf_chart.png")
 
 
@@ -319,38 +361,46 @@ def plot_dispensing_overview_annotated(df, national, ramp_months):
     trough = covid_window.loc[covid_window["prep_dispensing_count"].idxmin()]
     trough_date = trough["month"]
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12, 7.5))
     ax.plot(national["month"], national["prep_dispensing_count"], color=NATIONAL_COLOR, linewidth=3.5, label="National")
     for state in STATE_ORDER:
         ax.plot(state_pivot.index, state_pivot[state], color=STATE_COLORS[state], linewidth=2, label=state_label(state))
 
-    top = ax.get_ylim()[1]
+    # Push the axis ceiling well above the highest data point (the Jul 2020
+    # spike) so every label sits in a clear band above the lines, rather than
+    # on top of the national or state series the prose describes.
+    data_top = ax.get_ylim()[1]
+    top = data_top * 1.32
+    ax.set_ylim(top=top)
+    label_box = dict(facecolor="white", edgecolor="none", alpha=0.85, pad=2)
+
     ax.axvline(EPIC_NSW_START_DATE, color="grey", linestyle="--", linewidth=1.5)
-    ax.text(EPIC_NSW_START_DATE, top * 0.85, "EPIC-NSW early\naccess (Mar 2016)",
-            color="grey", ha="left", va="top")
+    ax.text(EPIC_NSW_START_DATE, top * 0.97, "EPIC-NSW early\naccess (Mar 2016)",
+            color="grey", ha="left", va="top", fontsize=8.5, bbox=label_box)
     ax.axvline(PBS_LISTING_DATE, color="firebrick", linewidth=2)
-    ax.text(PBS_LISTING_DATE, top * 0.72, "  PBS listing\n  (Apr 2018)",
-            color="firebrick", ha="left", va="top")
+    ax.text(PBS_LISTING_DATE, top * 0.88, "  PBS listing\n  (Apr 2018)",
+            color="firebrick", ha="left", va="top", fontsize=8.5, bbox=label_box)
 
     ax.axvline(ramp_end_date, color=NATIONAL_COLOR, linewidth=1, linestyle="--")
-    ax.text(ramp_end_date, top * 0.38, "  Ramp to steady\n  state ends ({})".format(ramp_end_date.strftime("%b %Y")),
-            color=NATIONAL_COLOR, fontsize=8, ha="left", va="top")
+    ax.text(ramp_end_date, top * 0.80, "  Ramp to steady\n  state ends ({})".format(ramp_end_date.strftime("%b %Y")),
+            color=NATIONAL_COLOR, fontsize=8, ha="left", va="top", bbox=label_box)
 
     ax.axvspan(COVID_START, COVID_END, color="grey", alpha=0.12, zorder=0)
-    ax.text(COVID_START, top * 0.62, "  COVID-19\n  restrictions\n  (Mar 2020 - Oct 2021)",
-            color="grey", ha="left", va="center", fontsize=8.5)
+    covid_mid = COVID_START + (COVID_END - COVID_START) / 2
+    ax.text(covid_mid, top * 0.97, "COVID-19 restrictions\n(Mar 2020 - Oct 2021)",
+            color="dimgrey", ha="center", va="top", fontsize=8, bbox=label_box)
     ax.annotate("Trough: {}".format(trough_date.strftime("%b %Y")),
-                xy=(trough_date, trough["prep_dispensing_count"]), xytext=(trough_date, top * 0.1),
-                fontsize=8, color="grey", ha="center",
-                arrowprops=dict(arrowstyle="->", color="grey", linewidth=1))
+                xy=(trough_date, trough["prep_dispensing_count"]), xytext=(trough_date, top * 0.88),
+                fontsize=8, color="dimgrey", ha="center", bbox=label_box,
+                arrowprops=dict(arrowstyle="->", color="dimgrey", linewidth=1))
 
     recovery_point = national[national["month"] == pd.Timestamp("2022-06-01")]
     if not recovery_point.empty:
         rec_x = recovery_point["month"].iloc[0]
         rec_y = recovery_point["prep_dispensing_count"].iloc[0]
         ax.annotate("Growth continues after COVID,\nno decline in the raw data",
-                    xy=(rec_x, rec_y), xytext=(rec_x, top * 0.74),
-                    fontsize=8.5, color=NATIONAL_COLOR, ha="center",
+                    xy=(rec_x, rec_y), xytext=(rec_x, top * 0.88),
+                    fontsize=8.5, color=NATIONAL_COLOR, ha="center", bbox=label_box,
                     arrowprops=dict(arrowstyle="->", color=NATIONAL_COLOR, linewidth=1))
 
     ax.set_title("PBS PrEP dispensing counts by state and nationally, Jan 2016 - Dec 2022")
@@ -585,18 +635,25 @@ def main():
     v2_model, v2_fit = fit_v2_specification(rest_of_country)
     print(v2_model.summary())
 
-    ols_model, poisson_model, nb_model, comparison = fit_candidate_families(v2_fit, FORMULA_V2)
-    print("\nEmpirical comparison checklist (docs/model_family_concepts.md Section 6), v2 specification:")
-    print(comparison.to_string(index=False))
+    ols_model, full_poisson_model, full_nb_model, full_comparison = fit_candidate_families(v2_fit, FORMULA_V2)
+    print("\nFull-series fit (OLS is the headline level-shift model; Poisson/NB are")
+    print("shown here only to document why they are not used on the full series,")
+    print("see reports/data_validation.md):")
+    print(full_comparison.to_string(index=False))
+
+    post_poisson_model, post_nb_model, post_comparison = fit_post_listing_count_models(v2_fit)
+    print("\nPost-listing-only fit (Poisson/NB characterise the post-period's own")
+    print("shape; this is where their Empirical comparison checklist applies):")
+    print(post_comparison.to_string(index=False))
 
     dispensing_initial_path = plot_full_series(df, national)
     dispensing_path = plot_dispensing_overview_annotated(df, national, v2_fit.attrs["ramp_months"])
     zoom_path = plot_nsw_pretrend(df)
     initial_spec_path = plot_its_specification(national_fit, model)
     v2_spec_path = plot_v2_specification(v2_fit, v2_model)
-    dist_path = plot_family_distribution_comparison(v2_fit, ols_model, poisson_model, nb_model)
-    resid_path = plot_residuals_over_time(v2_fit, ols_model, poisson_model, nb_model)
-    acf_path = plot_residuals_acf(ols_model, poisson_model, nb_model)
+    dist_path = plot_family_distribution_comparison(v2_fit, post_poisson_model, post_nb_model)
+    resid_path = plot_residuals_over_time(v2_fit, post_poisson_model, post_nb_model)
+    acf_path = plot_residuals_acf(post_poisson_model, post_nb_model)
     print(
         f"\nFigures written:\n - {v2_spec_path}\n - {initial_spec_path}"
         f"\n - {dist_path}\n - {resid_path}\n - {acf_path}\n - {dispensing_initial_path}\n - {dispensing_path}"

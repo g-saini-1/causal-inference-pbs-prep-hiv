@@ -1,4 +1,4 @@
-# HIV notifications: data exploration
+# Data exploration: HIV notifications
 
 A direct look at the HIV notification series by transmission category, ahead of any
 modelling.
@@ -28,7 +28,7 @@ Three patterns are visible without any modelling:
   notifications fall 22% from a 2013-15 average (56.6 a quarter) to a 2016-17
   average (44.1), while the rest of the country's MSM notifications fall only
   2.2% over the same window (118.9 to 116.3 a quarter). This is the same
-  EPIC-NSW pre-trend `reports/pbs_prep_dispensing_data_exploration.md` found
+  EPIC-NSW pre-trend `reports/data_exploration_pbs_prep_dispensing.md` found
   in dispensing, now visible in the outcome data too, and it matters here
   more directly: Stage 2's planned specification pools all states under a
   single April 2018 cutoff, so part of what a naive national MSM/comparison

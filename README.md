@@ -25,12 +25,12 @@ In progress: Stage 1 below is complete; Stages 2-4, the actual causal claim, are
 
 | Status | Stage / activity | Details |
 |---|---|---|
-| Complete | Data generation & QA | [Report](reports/data_acquisition.md): Synthetic PBS/HIV data with known ground truth, two QA issues found and fixed |
-| Complete | Data exploration | [Report](reports/pbs_prep_dispensing_data_exploration.md): NSW's early EPIC-NSW access dominates the national pre-trend |
-| Complete | Stage 1: Interrupted time series | [Report](reports/stage1_interrupted_time_series.md) |
-| Not started | Stage 2: Difference-in-differences | [Scope](docs/scope_and_rationale.md): will compare MSM vs. other transmission categories to isolate the policy effect |
-| Not started | Stage 3: Staggered-adoption analysis | [Scope](docs/scope_and_rationale.md): will use NSW's earlier EPIC-NSW trial as a staggered-treatment design |
-| Not started | Stage 4 (optional): Causal forest heterogeneity | [Scope](docs/scope_and_rationale.md): will examine state-level heterogeneity in treatment effects |
+| Complete | Data acquisition | [reports/data_acquisition.md](reports/data_acquisition.md): Synthetic PBS/HIV data with known ground truth|
+| Complete | Data exploration | [reports/pbs_prep_dispensing_data_exploration.md](reports/pbs_prep_dispensing_data_exploration.md): NSW's early EPIC-NSW access dominates the national pre-trend |
+| Complete | Stage 1: Interrupted time series | [reports/stage1_interrupted_time_series.md](reports/stage1_interrupted_time_series.md) |
+| Not started | Stage 2: Difference-in-differences | [docs/scope_and_rationale.md](docs/scope_and_rationale.md): will compare MSM vs. other transmission categories to isolate the policy effect |
+| Not started | Stage 3: Staggered-adoption analysis | [docs/scope_and_rationale.md](docs/scope_and_rationale.md): will use NSW's earlier EPIC-NSW trial as a staggered-treatment design |
+| Not started | Stage 4 (optional): Causal forest heterogeneity | [docs/scope_and_rationale.md](docs/scope_and_rationale.md): will examine state-level heterogeneity in treatment effects |
 
 ## Methodology tooling
 

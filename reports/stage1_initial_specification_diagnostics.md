@@ -47,7 +47,7 @@ impossible to construct.
   genuine nonlinear trend can be mistaken for a level shift, or vice versa.
 - A single national break test can misattribute an already-underway regional trend
   to the national-level event, addressed for this project's own case in
-  `reports/pbs_prep_dispensing_data_exploration.md`.
+  `reports/data_exploration_pbs_prep_dispensing.md`.
 
 Because of these limitations, particularly the missing comparison group and the risk
 of misattributing a regional trend, this project's four-stage causal design (see
