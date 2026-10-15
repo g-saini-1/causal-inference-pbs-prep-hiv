@@ -6,12 +6,15 @@ Column definitions for the three synthetic, analysis-ready CSVs in
 full in [`reports/data_acquisition.md`](../reports/data_acquisition.md).
 
 Real-world source extracts (raw PBS Item Reports, NNDSS/Kirby HIV notification
-tables, PBS item/drug maps) live under [`data/raw/`](raw/) and are documented
-inline in [`data/raw/data-collection-notes.md`](raw/data-collection-notes.md).
+tables, PBS item/drug maps) live under `data/raw/`, kept locally for reference
+only and excluded from git (see `.gitignore`). What they contain and how this
+synthetic data compares against them is documented in the tracked
+[`reports/data_acquisition.md`](../reports/data_acquisition.md) and
+[`reports/data_validation.md`](../reports/data_validation.md).
 
 ## `pbs_dispensing_monthly.csv`
 
-One row per state × month, January 2016 – December 2022.
+One row per state × month, January 2016 – October 2022.
 
 | column | type | meaning |
 |---|---|---|
