@@ -6,11 +6,14 @@ project scope, with known ground-truth effects baked in so model output
 can be checked against a known answer:
 
 1. pbs_dispensing_monthly.csv
-   State x month PBS PrEP dispensing counts, Jan 2016 - Dec 2022. Not a
+   State x month PBS PrEP dispensing counts, Jan 2016 - Oct 2022. Not a
    fitted formula: real PBS Item Report data from Apr 2018 onward (all
    states), a documented construction from EPIC-NSW's published enrolment
    milestones for NSW's Mar 2016 - Mar 2018 trial period, and 0 everywhere
-   else pre-listing (these PBS item codes did not exist yet). See
+   else pre-listing (these PBS item codes did not exist yet). Ends at Oct
+   2022 rather than Dec 2022: the raw extract's Nov/Dec 2022 rows are an
+   isolated collapse consistent with reporting lag, not a real drop, so
+   those two months are dropped rather than estimated. See
    reports/data_validation.md's "Generation rules" (PBS
    dispensing) for the full reasoning.
 
@@ -58,13 +61,15 @@ STATES = ["NSW", "VIC", "QLD", "WA", "SA", "OTHER"]
 STATE_WEIGHTS = {"NSW": 0.32, "VIC": 0.26, "QLD": 0.20, "WA": 0.11, "SA": 0.07, "OTHER": 0.04}
 
 # =============================================================
-# 1. PBS DISPENSING (monthly, state x month), Jan 2016 - Dec 2022
+# 1. PBS DISPENSING (monthly, state x month), Jan 2016 - Oct 2022
 #
 # Built from real data and a referenced construction, not a fitted formula;
 # see reports/data_validation.md's "Generation rules" (PBS
 # dispensing) for the full reasoning behind each of the three rules below.
+# Ends at Oct 2022: Nov/Dec 2022 are dropped rather than estimated, see
+# data/reference/pbs_dispensing_real_monthly.csv and reports/data_acquisition.md.
 # =============================================================
-months = pd.date_range("2016-01-01", "2022-12-01", freq="MS")
+months = pd.date_range("2016-01-01", "2022-10-01", freq="MS")
 PBS_LISTING = pd.Timestamp("2018-04-01")
 EPIC_NSW_START = pd.Timestamp("2016-03-01")
 

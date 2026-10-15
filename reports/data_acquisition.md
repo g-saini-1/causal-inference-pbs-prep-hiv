@@ -36,7 +36,7 @@ for example item 11296M (tenofovir disoproxil 300 mg + emtricitabine
 distinguishes these dispensings from the same drug prescribed to *treat*
 existing HIV infection, which sits under a separate item and restriction.
 
-The project's dispensing series must span January 2016 to December 2022,
+The project's dispensing series must span January 2016 to October 2022,
 so it covers both sides of the April 2018 PBS listing and supports a pre-
 and post-treatment comparison (see
 [`docs/scope_and_rationale.md`](../docs/scope_and_rationale.md)). Meeting
@@ -59,7 +59,7 @@ The item codes were identified through the following steps:
 
 These are the item codes found, and the month each has dispensing data.
 Four of the eight codes, 14636H, 15366R, 15383P, and 15410C, list after the
-project's December 2022 end date; they are recorded for completeness, not
+project's October 2022 end date; they are recorded for completeness, not
 because the ground-truth comparison needs them.
 
 | Item code | Month listing starts | Sources |
@@ -118,11 +118,12 @@ itself:
   enrolment milestones** [6], tracking cumulative enrolment (about 462
   new participants a month to 3,700 by October 2016, then about 334 a
   month to 9,709 by April 2018).
-- **April 2018 onward, all states: the real PBS Item Report extract**,
-  used directly. The one exception is November and December 2022, where
-  an isolated collapse in the raw extract, consistent with reporting lag
-  rather than a real drop, is corrected by linear interpolation between
-  October 2022 and January 2023.
+- **April 2018 to October 2022, all states: the real PBS Item Report
+  extract**, used directly, unmodified. November and December 2022 are
+  excluded: an isolated collapse in the raw extract
+  for those two months, consistent with reporting lag rather than a real
+  drop, left no reliable figure to use, so the series ends in October
+  2022 instead.
 
 ## HIV notifications data
 

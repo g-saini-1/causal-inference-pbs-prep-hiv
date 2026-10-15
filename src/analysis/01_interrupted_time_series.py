@@ -4,12 +4,7 @@ Sanity-check step: fits a segmented (piecewise-linear) regression around the
 1 April 2018 PBS listing date. Regenerates Stage 1's current specification chart
 (pbs_prep_its_specification_chart.png, rest-of-country series, every fitted term
 including the COVID-period and quadratic growth controls drawn, see
-reports/stage1_interrupted_time_series.md) plus the initial specification's
-preserved charts (pbs_prep_its_specification_initial_chart.png,
-pbs_prep_family_distribution_initial_chart.png,
-pbs_prep_residuals_over_time_initial_chart.png, pbs_prep_residuals_acf_initial_chart.png,
-pbs_prep_dispensing_initial_chart.png, see
-reports/stage1_initial_specification_diagnostics.md) and the two current raw-data
+reports/stage1_interrupted_time_series.md) plus the two current raw-data
 charts (pbs_prep_dispensing_chart.png, pbs_epic_nsw_zoom_chart.png) before moving
 to the harder outcome question in 02_diff_in_diff.py.
 
@@ -44,28 +39,12 @@ def state_label(state):
     return "Other" if state == "OTHER" else state
 
 
-def fit_segmented_regression(national):
-    national = national.copy()
-    national["t"] = range(len(national))
-    national["post_listing"] = (national["month"] >= PBS_LISTING_DATE).astype(int)
-    national["months_since_post_listing"] = national["post_listing"] * (
-        national["t"] - national.loc[national["post_listing"] == 1, "t"].min()
-    )
-    model = smf.ols(
-        "prep_dispensing_count ~ t + post_listing + months_since_post_listing",
-        data=national,
-    ).fit()
-    national["fitted"] = model.fittedvalues
-    return model, national
-
-
-FORMULA = "prep_dispensing_count ~ t + post_listing + months_since_post_listing"
-
-# Stage 1 v2: the initial specification's own diagnostics (see
-# reports/stage1_initial_specification_diagnostics.md) identified two omitted-structure
-# gaps and a confound, addressed here: an early ramp term and a COVID dip-and-recovery
-# term, and switching from the full national aggregate to a rest-of-country
-# aggregate (NSW excluded, since its EPIC-NSW ramp otherwise dominates the pre-trend).
+# Stage 1 v2: addresses two omitted-structure gaps and a confound in a simpler
+# pre-listing/post-listing specification (see "What is an interrupted time
+# series, and why use it here?" in reports/stage1_interrupted_time_series.md):
+# an early ramp term and a COVID dip-and-recovery term, and switching from the
+# full national aggregate to a rest-of-country aggregate (NSW excluded, since
+# its EPIC-NSW ramp otherwise dominates the pre-trend).
 #
 # `early_ramp` is a linear spline that gives the months right after listing their own,
 # steeper slope, separate from the shallower long-run growth afterward; a single
@@ -199,7 +178,7 @@ def fit_post_listing_count_models(national):
     return poisson_model, nb_model, pd.DataFrame(rows)
 
 
-def fit_candidate_families(national, formula=FORMULA):
+def fit_candidate_families(national, formula):
     """Fit OLS, Poisson, and Negative Binomial on the same specification, and
     compute the Empirical comparison checklist items from
     docs/model_family_concepts.md Section 6 for each candidate: coefficient,
@@ -325,28 +304,6 @@ def plot_residuals_acf(poisson_model, nb_model):
     return save_figure(fig, "pbs_prep_residuals_acf_chart.png")
 
 
-def plot_full_series(df, national):
-    state_pivot = df.pivot(index="month", columns="state", values="prep_dispensing_count")
-
-    fig, ax = plt.subplots()
-    ax.plot(national["month"], national["prep_dispensing_count"], color=NATIONAL_COLOR, linewidth=3.5, label="National")
-    for state in STATE_ORDER:
-        ax.plot(state_pivot.index, state_pivot[state], color=STATE_COLORS[state], linewidth=2, label=state_label(state))
-
-    top = ax.get_ylim()[1]
-    ax.axvline(EPIC_NSW_START_DATE, color="grey", linestyle="--", linewidth=1.5)
-    ax.text(EPIC_NSW_START_DATE, top * 0.85, "EPIC-NSW early\naccess (Mar 2016)",
-            color="grey", ha="left", va="top")
-    ax.axvline(PBS_LISTING_DATE, color="firebrick", linewidth=2)
-    ax.text(PBS_LISTING_DATE, top * 0.72, "  PBS listing\n  (Apr 2018)",
-            color="firebrick", ha="left", va="top")
-
-    ax.set_title("PBS PrEP dispensing counts by state and nationally, Jan 2016 - Dec 2022")
-    ax.set_ylabel("Dispensing count per month")
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=7, frameon=False)
-    return save_figure(fig, "pbs_prep_dispensing_initial_chart.png")
-
-
 def plot_dispensing_overview_annotated(df, national, ramp_months):
     """Same chart as plot_full_series, with the distinct segments a specification
     needs to account for marked out and dated directly: the post-listing ramp to
@@ -403,7 +360,7 @@ def plot_dispensing_overview_annotated(df, national, ramp_months):
                     fontsize=8.5, color=NATIONAL_COLOR, ha="center", bbox=label_box,
                     arrowprops=dict(arrowstyle="->", color=NATIONAL_COLOR, linewidth=1))
 
-    ax.set_title("PBS PrEP dispensing counts by state and nationally, Jan 2016 - Dec 2022")
+    ax.set_title("PBS PrEP dispensing counts by state and nationally, Jan 2016 - Oct 2022")
     ax.set_ylabel("Dispensing count per month")
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=7, frameon=False)
     return save_figure(fig, "pbs_prep_dispensing_chart.png")
@@ -431,73 +388,6 @@ def plot_nsw_pretrend(df):
     ax.set_ylabel("Dispensing count per month")
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.25), ncol=6, frameon=False)
     return save_figure(fig, "pbs_epic_nsw_zoom_chart.png")
-
-
-def plot_its_specification(national, model):
-    fig, ax = plt.subplots()
-
-    beta0 = model.params["Intercept"]
-    beta1 = model.params["t"]
-
-    pre = national[national["post_listing"] == 0].reset_index(drop=True)
-    post = national[national["post_listing"] == 1].reset_index(drop=True)
-    listing_date = post["month"].iloc[0]
-    t_listing = post["t"].iloc[0]
-    pre_extrapolated = beta0 + beta1 * t_listing
-    post_start = post["fitted"].iloc[0]
-
-    ax.plot(pre["month"], pre["fitted"], color="firebrick", linewidth=2.5, label="Pre-listing fit")
-    ax.plot(post["month"], post["fitted"], color="firebrick", linewidth=2.5, linestyle="--",
-            label="Post-listing fit")
-
-    # counterfactual: the pre-listing trend extended across the whole post period,
-    # this doubles as the beta3 reference (gap vs. the actual post-listing fit) and
-    # as the causal-inference counterfactual (gap vs. observed = the treatment effect)
-    counterfactual = beta0 + beta1 * post["t"]
-    ax.plot(post["month"], counterfactual, color="grey", linewidth=1.6, linestyle=":",
-            label="Counterfactual (pre-trend continued)")
-    ax.fill_between(post["month"], counterfactual, post["fitted"], color="firebrick", alpha=0.1)
-
-    ax.axvline(listing_date, color="black", linewidth=1.2)
-    top = ax.get_ylim()[1]
-    ax.text(listing_date, top * 0.96, "  Treatment:\n  PBS listing (Apr 2018)", fontsize=9,
-            ha="left", va="top")
-
-    # beta2: the level shift at the listing date (also the treatment effect at t=0)
-    ax.annotate("", xy=(listing_date, post_start), xytext=(listing_date, pre_extrapolated),
-                arrowprops=dict(arrowstyle="<->", color="black", linewidth=1.3))
-    ax.text(listing_date, (pre_extrapolated + post_start) / 2, "  β2\n  (level shift)",
-            va="center", ha="left", fontsize=10)
-
-    # beta0: the pre-listing intercept
-    ax.annotate("β0 (intercept)", xy=(pre["month"].iloc[0], beta0),
-                xytext=(pre["month"].iloc[5], 2200), fontsize=9.5, color="firebrick",
-                arrowprops=dict(arrowstyle="->", color="firebrick", linewidth=1))
-
-    # beta1: shown as an explicit rise-over-run triangle on the pre-listing line
-    i1, i2 = len(pre) // 6, 5 * len(pre) // 6
-    x1, y1 = pre["month"].iloc[i1], pre["fitted"].iloc[i1]
-    x2, y2 = pre["month"].iloc[i2], pre["fitted"].iloc[i2]
-    ax.plot([x1, x2], [y1, y1], color="grey", linewidth=1, linestyle="--")
-    ax.plot([x2, x2], [y1, y2], color="grey", linewidth=1, linestyle="--")
-    ax.annotate("β1 = rise ÷ run", xy=(x2, (y1 + y2) / 2), xytext=(18, 0),
-                textcoords="offset points", fontsize=9.5, color="firebrick", va="center")
-
-    # beta3: the gap between the counterfactual (beta1's slope) and the actual, steeper
-    # post-listing fit a year on, this is also part of the shaded treatment effect
-    ref_idx = min(12, len(post) - 1)
-    ref_x = post["month"].iloc[ref_idx]
-    ref_y = counterfactual.iloc[ref_idx]
-    actual_y = post["fitted"].iloc[ref_idx]
-    ax.annotate("", xy=(ref_x, actual_y), xytext=(ref_x, ref_y),
-                arrowprops=dict(arrowstyle="->", color="firebrick", linewidth=1.3))
-    ax.annotate("β3 (extra slope\nper month)", xy=(ref_x, (ref_y + actual_y) / 2), xytext=(18, 0),
-                textcoords="offset points", fontsize=9.5, color="firebrick", va="center")
-
-    ax.set_title("Segmented regression: coefficients and causal concepts, both geometrically")
-    ax.set_ylabel("Dispensing count per month")
-    ax.legend(loc="upper left", frameon=False, fontsize=9)
-    return save_figure(fig, "pbs_prep_its_specification_initial_chart.png")
 
 
 def plot_v2_specification(national, model):
@@ -576,17 +466,23 @@ def plot_v2_specification(national, model):
                 xy=(ramp_end_date, (ramp_y0 + ramp_y1) / 2), xytext=(10, -65),
                 textcoords="offset points", fontsize=9.5, color="darkorange", va="center")
 
-    # beta3: the shallower long-run slope, read a year past the ramp so it isn't
-    # blended with the ramp's much steeper early slope
-    ref_idx = min(ramp_months + 12, len(post) - 1)
-    ref_x = post["month"].iloc[ref_idx]
-    ref_y = counterfactual.iloc[ref_idx]
-    actual_y = post["structural"].iloc[ref_idx]
-    ax.annotate("", xy=(ref_x, actual_y), xytext=(ref_x, ref_y),
-                arrowprops=dict(arrowstyle="->", color="firebrick", linewidth=1.3))
-    ax.annotate("β3 (long-run extra\nslope per month)\n{}".format(ref_x.strftime("%b %Y")),
-                xy=(ref_x, (ref_y + actual_y) / 2), xytext=(18, 0),
-                textcoords="offset points", fontsize=9.5, color="firebrick", va="center")
+    # beta3: like beta1, this slope is too close to flat to show as a visible
+    # rise/run triangle at this scale, and not statistically distinguishable
+    # from zero either (see Model specification), so point directly at the
+    # post-ramp trajectory line instead, near the series end where it's
+    # clear of the COVID annotations. A gap-to-counterfactual arrow here
+    # would span the same height as the shaded treatment-effect region and
+    # the fitted line already do, so it would be invisible against them.
+    # Points at the series end, after the COVID recovery window, rather than
+    # the named Long-run growth segment (Oct 2019 - Feb 2020) itself, since
+    # months_since_post_listing never resets: that one slope underlies the
+    # whole post-ramp trajectory, both segments show the same line.
+    ref_x = post["month"].iloc[-1]
+    ref_y = post["structural"].iloc[-1]
+    ax.annotate("β3 (long-run slope since\nOct 2019, continues\nunder/after COVID)",
+                xy=(ref_x, ref_y), xytext=(post["month"].iloc[int(len(post) * 0.68)], top * 0.78),
+                fontsize=9.5, color="firebrick", ha="left", va="center",
+                arrowprops=dict(arrowstyle="->", color="firebrick", linewidth=1))
 
     # beta5: the gap between the core trajectory and the fully fitted line, read
     # exactly at the observed trough, where covid_recovery is still 0, so the gap
@@ -628,9 +524,6 @@ def main():
     df = load_pbs_dispensing()
     national = df.groupby("month", as_index=False)["prep_dispensing_count"].sum()
 
-    model, national_fit = fit_segmented_regression(national)
-    print(model.summary())
-
     rest_of_country = build_rest_of_country_series(df)
     v2_model, v2_fit = fit_v2_specification(rest_of_country)
     print(v2_model.summary())
@@ -646,17 +539,15 @@ def main():
     print("shape; this is where their Empirical comparison checklist applies):")
     print(post_comparison.to_string(index=False))
 
-    dispensing_initial_path = plot_full_series(df, national)
     dispensing_path = plot_dispensing_overview_annotated(df, national, v2_fit.attrs["ramp_months"])
     zoom_path = plot_nsw_pretrend(df)
-    initial_spec_path = plot_its_specification(national_fit, model)
     v2_spec_path = plot_v2_specification(v2_fit, v2_model)
     dist_path = plot_family_distribution_comparison(v2_fit, post_poisson_model, post_nb_model)
     resid_path = plot_residuals_over_time(v2_fit, post_poisson_model, post_nb_model)
     acf_path = plot_residuals_acf(post_poisson_model, post_nb_model)
     print(
-        f"\nFigures written:\n - {v2_spec_path}\n - {initial_spec_path}"
-        f"\n - {dist_path}\n - {resid_path}\n - {acf_path}\n - {dispensing_initial_path}\n - {dispensing_path}"
+        f"\nFigures written:\n - {v2_spec_path}"
+        f"\n - {dist_path}\n - {resid_path}\n - {acf_path}\n - {dispensing_path}"
         f"\n - {zoom_path}"
     )
 

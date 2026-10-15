@@ -33,9 +33,11 @@ def real_reference():
 
 
 def test_full_series_covers_expected_window(pbs):
-    # 84 months (Jan 2016 - Dec 2022) x 6 states
-    assert pbs.shape == (504, 3)
-    assert pbs["month"].nunique() == 84
+    # 82 months (Jan 2016 - Oct 2022) x 6 states. Ends at Oct 2022, not Dec
+    # 2022: Nov/Dec 2022 are excluded rather than estimated, see
+    # reports/data_acquisition.md's "Data acquisition and construction".
+    assert pbs.shape == (492, 3)
+    assert pbs["month"].nunique() == 82
     assert set(pbs["state"].unique()) == set(gen.STATES)
 
 
@@ -109,6 +111,6 @@ def test_post_listing_matches_real_reference_exactly(pbs, real_reference):
 
 
 def test_real_reference_file_covers_full_window_no_gaps(real_reference):
-    assert real_reference.shape == (57, 7)  # Apr 2018 - Dec 2022, 6 state columns + month
+    assert real_reference.shape == (55, 7)  # Apr 2018 - Oct 2022, 6 state columns + month
     assert real_reference.drop(columns="month").notna().all().all()
     assert (real_reference.drop(columns="month") >= 0).all().all()
