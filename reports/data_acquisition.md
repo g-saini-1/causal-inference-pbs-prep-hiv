@@ -8,16 +8,13 @@ extracts, and how each series was built, one dataset at a time. For QA and
 a deeper check of each series against real ground truth, see
 [`reports/data_validation.md`](data_validation.md).
 
-**Data sourcing and licensing.** Real third-party source files (PBS Item
-Reports, Kirby Institute reports, Kirby's HIV dashboard exports) are kept
-locally, not committed to git (see `.gitignore`), a project choice rather
-than a uniform legal bar: the PBS Item Reports carry a Creative Commons
-Attribution 3.0 Australia licence permitting redistribution with
-attribution, while the Kirby Institute material carries no stated licence
-and falls back to UNSW's general site policy, a genuine grey area on public
-redistribution. Facts drawn from these sources are cited by their
-real-world origin rather than a local path, so this document's claims stay
-checkable without the files themselves.
+**Data sourcing and licensing.** Every real-world source is cited by its
+public origin, so this document's claims can be checked independently of
+any file in this repository. Where practical, the specific source file is
+also committed here, giving a reader the underlying evidence directly
+rather than a citation alone; this is not done for every source, file
+size and licensing terms can make it impractical. Each dataset's section
+below states which of its files were committed, and under what licence.
 
 **Status.** The PBS dispensing data section below is complete. The HIV
 notifications data and State covariates data sections are still to be
@@ -54,7 +51,7 @@ The item codes were identified through the following steps:
   Schedules of Pharmaceutical Benefits
   (https://www.pbs.gov.au/publication/schedule/archive).
 - The resulting item codes were validated against the item codes listed
-  in the **Kirby Institute** (UNSW Sydney) report series "Monitoring HIV
+  in the **Kirby Institute** (UNSW Sydney) Issue 10 report, "Monitoring HIV
   pre-exposure prophylaxis (PrEP) uptake in Australia" [1].
 
 These are the item codes found, and the month each has dispensing data.
@@ -64,24 +61,24 @@ because the ground-truth comparison needs them.
 
 | Item code | Month listing starts | Sources |
 |---|---|---|
-| 11276L | April 2018 | Kirby Institute report series [1]; PBS Item Report extract |
-| 11296M | April 2018 | Kirby Institute report series [1]; PBS Item Report extract |
-| 11306C | April 2018 | Kirby Institute report series [1]; PBS Item Report extract |
-| 12542D | April 2021 | Kirby Institute report series [1]; PBS Item Report extract |
-| 14636H | October 2024 | PBS Item Report extract only (postdates Kirby Issues 1-10) |
-| 15366R | July 2026 | PBS Item Report extract only (postdates Kirby Issues 1-10) |
-| 15383P | July 2026 | PBS Item Report extract only (postdates Kirby Issues 1-10) |
-| 15410C | July 2026 | PBS Item Report extract only (postdates Kirby Issues 1-10) |
+| 11276L | April 2018 | Kirby Institute, Issue 10 [1]; PBS Item Report extract |
+| 11296M | April 2018 | Kirby Institute, Issue 10 [1]; PBS Item Report extract |
+| 11306C | April 2018 | Kirby Institute, Issue 10 [1]; PBS Item Report extract |
+| 12542D | April 2021 | Kirby Institute, Issue 10 [1]; PBS Item Report extract |
+| 14636H | October 2024 | PBS Item Report extract only (postdates the Kirby report used [1]) |
+| 15366R | July 2026 | PBS Item Report extract only (postdates the Kirby report used [1]) |
+| 15383P | July 2026 | PBS Item Report extract only (postdates the Kirby report used [1]) |
+| 15410C | July 2026 | PBS Item Report extract only (postdates the Kirby report used [1]) |
 
 ### Data availability
 
 Once the codes were confirmed, PBS dispensing data for those codes (by
 item, scheme, state, and month, January 2016 to July 2026) was downloaded
-from Services Australia's Medicare Statistics PBS Item Reports tool. The
-exact URL used for that download cannot be confirmed: the downloaded
-extract files carry no source link, only a Services Australia disclaimer,
-and the tool does not appear to still be available at its expected
-address.
+from a Services Australia reporting tool, named "Medicare Statistics" in
+the downloaded file's own page title; no other name for the tool is
+documented. The download's exact URL is unknown: the extract files carry
+no source link, only a Services Australia disclaimer, and the tool no
+longer appears to be available at its expected address.
 
 ### Data gaps
 
@@ -124,6 +121,30 @@ itself:
   for those two months, consistent with reporting lag rather than a real
   drop, left no reliable figure to use, so the series ends in October
   2022 instead.
+
+### Data sourcing and licensing
+
+This dataset draws on two real-world sources. One is committed to this
+repository as a file; the other is cited by reference only.
+
+- **`data/raw/pbs-dispensing-data/PBS_Data_2103987483.7.xls`**, the PBS
+  Item Report extract described under Data acquisition and construction
+  above (see Data availability above for how it was obtained), is
+  committed here. Services Australia's site-wide copyright policy
+  licenses this content under a **Creative Commons Attribution 4.0
+  International Licence**, attributed as "© Commonwealth of Australia"
+  (Services Australia). Licence terms:
+  https://creativecommons.org/licenses/by/4.0/; Services Australia's
+  policy: https://www.servicesaustralia.gov.au/copyright. A separate
+  data.gov.au dataset publishes similar extracts under Creative Commons
+  Attribution 3.0 Australia, but only to 2016, before the April 2018
+  listing, so it could not be the source used here.
+- The Kirby Institute's Issue 10 report [1], used under Identifying PrEP
+  item codes above to validate the item codes, is cited by its published
+  URL only and not committed to this repository. UNSW's site-wide
+  copyright policy (https://www.unsw.edu.au/copyright-disclaimer) does
+  not grant a right to redistribute material without permission, and no
+  exception for the Kirby Institute's own pages is stated.
 
 ## HIV notifications data
 
@@ -194,12 +215,10 @@ calibrated to any published figures.
 ## References
 
 1. Kirby Institute. *Monitoring HIV pre-exposure prophylaxis (PrEP) uptake in
-   Australia* [report series, Issues 1-10, 2019-2024]. Sydney: Kirby Institute,
-   UNSW Sydney. Series page: https://www.kirby.unsw.edu.au/research/reports;
-   Issue 10, used for item-code validation:
+   Australia*, Issue 10. Sydney: Kirby Institute, UNSW Sydney.
    https://www.kirby.unsw.edu.au/research/reports/monitoring-hiv-pre-exposure-prophylaxis-prep-uptake-australia-issue-10.
-   Item codes stated explicitly from Issue 6 (May 2022) onward: 11276L,
-   11296M, 11306C, 12542D.
+   Used to validate the item codes identified via the PBS medicine search.
+   Item codes stated explicitly: 11276L, 11296M, 11306C, 12542D.
 2. Kirby Institute. *HIV summary Q2 2023* [National HIV Quarterly Report].
    Sydney: Kirby Institute, UNSW Sydney.
    https://www.kirby.unsw.edu.au/sites/default/files/documents/HIV%20summary%20Q2%202023.pdf.
